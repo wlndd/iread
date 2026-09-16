@@ -1,9 +1,12 @@
 package com.iread.novel
 
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+import com.iread.novel.ui.navigation.IReadNavHost
+import com.iread.novel.ui.theme.IReadTheme
 
 @Composable
 fun IReadApp() {
-    Text("我的书架")
+    val application = LocalContext.current.applicationContext as IReadApplication
+    IReadTheme { IReadNavHost(application.container) }
 }

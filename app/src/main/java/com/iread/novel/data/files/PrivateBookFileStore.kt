@@ -31,10 +31,47 @@ class EmptyImportFileException : IllegalArgumentException("The selected file is 
 class UnreadableImportSourceException(cause: Throwable) : IOException("Cannot read selected file", cause)
 class PrivateStorageException(cause: Throwable) : IOException("Cannot access private book storage", cause)
 
-class PrivateBookFileStore(filesDir: File) : BookFileStore {
+interface QuarantinedBookFiles {
+    fun quarantine(bookId: String)
+    fun restore(bookId: String)
+    fun purge(bookId: String)
+    fun pendingDeletionIds(): List<String>
+}
+
+class PrivateBookFileStore(filesDir: File) : BookFileStore, QuarantinedBookFiles {
     private val privateRoot = filesDir.canonicalFile
     private val importingDir = childDirectory("importing")
     private val booksDir = childDirectory("books")
+    private val quarantineDir = childDirectory("quarantine")
+
+    override fun quarantine(bookId: String) {
+        val source = bookFile(booksDir, bookId)
+        ensureDirectory(quarantineDir)
+        // Same-volume rename preserves a recoverable copy until Room commits.
+        Files.move(source.toPath(), bookFile(quarantineDir, bookId).toPath())
+    }
+
+    override fun restore(bookId: String) {
+        ensureDirectory(booksDir)
+        Files.move(bookFile(quarantineDir, bookId).toPath(), bookFile(booksDir, bookId).toPath())
+    }
+
+    override fun purge(bookId: String) {
+        Files.deleteIfExists(bookFile(quarantineDir, bookId).toPath())
+    }
+
+    override fun pendingDeletionIds(): List<String> {
+        if (!quarantineDir.exists()) return emptyList()
+        return Files.list(quarantineDir.toPath()).use { paths ->
+            paths.map { it.fileName.toString() }.filter { safeStoredName.matches(it) }
+                .map { it.removeSuffix(".txt") }.toArray().map { it as String }
+        }
+    }
+
+    private fun bookFile(directory: File, bookId: String): File {
+        require(safeBookId.matches(bookId)) { "Invalid book id" }
+        return confinedChild(directory, "$bookId.txt")
+    }
 
     override fun stage(source: ImportSource): StagedBookFile {
         ensureDirectory(importingDir)
