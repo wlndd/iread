@@ -27,12 +27,17 @@ interface BookDao {
     @Query("SELECT EXISTS(SELECT 1 FROM books WHERE fingerprint = :fingerprint)")
     suspend fun hasFingerprint(fingerprint: String): Boolean
 
-    @Transaction
     @Query("SELECT * FROM books WHERE id = :bookId")
-    suspend fun getBookWithChapters(bookId: String): BookWithChapters?
+    suspend fun getBook(bookId: String): BookEntity?
 
     @Query("SELECT * FROM chapters WHERE bookId = :bookId ORDER BY chapterIndex")
     suspend fun getChapters(bookId: String): List<ChapterEntity>
+
+    @Transaction
+    suspend fun getBookWithChapters(bookId: String): BookWithChapters? {
+        val book = getBook(bookId) ?: return null
+        return BookWithChapters(book, getChapters(bookId))
+    }
 
     @Upsert
     suspend fun upsertProgress(progress: ReadingProgressEntity)

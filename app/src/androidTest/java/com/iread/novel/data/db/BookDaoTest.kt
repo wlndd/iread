@@ -40,6 +40,7 @@ class BookDaoTest {
                 ChapterEntity("book-load", 0, "第一章", "雨夜"),
             ),
         )
+        database.openHelper.writableDatabase.execSQL("PRAGMA reverse_unordered_selects = ON")
 
         val aggregate = dao.getBookWithChapters("book-load")
 
