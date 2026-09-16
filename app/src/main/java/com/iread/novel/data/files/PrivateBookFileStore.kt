@@ -9,6 +9,7 @@ import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
 import java.util.UUID
+import java.util.concurrent.CancellationException
 
 class StagedBookFile internal constructor(
     val token: String,
@@ -45,6 +46,8 @@ class PrivateBookFileStore(filesDir: File) : BookFileStore {
         try {
             val input = try {
                 source.open()
+            } catch (exception: CancellationException) {
+                throw exception
             } catch (exception: Exception) {
                 throw UnreadableImportSourceException(exception)
             }

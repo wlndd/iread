@@ -12,7 +12,7 @@ class AndroidImportSource(
 ) : ImportSource {
     private val metadata = queryMetadata()
 
-    override val displayName: String = metadata.first ?: uri.lastPathSegment ?: "import.txt"
+    override val displayName: String = metadata.first ?: uri.lastPathSegment ?: "未命名.txt"
     override val sizeBytes: Long? = metadata.second
 
     override fun open(): InputStream = contentResolver.openInputStream(uri)

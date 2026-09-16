@@ -1,9 +1,11 @@
 package com.iread.novel.data.db
 
 import androidx.room.Entity
+import androidx.room.Embedded
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.room.Relation
 
 @Entity(
     tableName = "books",
@@ -65,4 +67,13 @@ data class BookRow(
     val author: String,
     val totalChapters: Int,
     val unreadChapters: Int,
+)
+
+data class BookWithChapters(
+    @Embedded val book: BookEntity,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "bookId",
+    )
+    val chapters: List<ChapterEntity>,
 )

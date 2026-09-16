@@ -3,6 +3,7 @@ package com.iread.novel.data.files
 import com.iread.novel.testutil.ByteArrayImportSource
 import java.nio.file.Files
 import java.security.MessageDigest
+import java.util.concurrent.CancellationException
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -11,6 +12,23 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class PrivateBookFileStoreTest {
+    @Test
+    fun propagatesCancellationFromSourceOpenAndRemovesTemporaryCopy() {
+        val filesDir = Files.createTempDirectory("iread-files-cancelled").toFile()
+        val store = PrivateBookFileStore(filesDir)
+        val source = object : ImportSource {
+            override val displayName = "cancelled.txt"
+            override val sizeBytes: Long? = null
+            override fun open(): java.io.InputStream = throw CancellationException("cancelled")
+        }
+
+        assertThrows(CancellationException::class.java) {
+            store.stage(source)
+        }
+
+        assertTrue(java.io.File(filesDir, "importing").listFiles().orEmpty().isEmpty())
+    }
+
     @Test
     fun stagesHashesAndFinalizesOnlyInsidePrivateStorage() {
         val filesDir = Files.createTempDirectory("iread-files").toFile()

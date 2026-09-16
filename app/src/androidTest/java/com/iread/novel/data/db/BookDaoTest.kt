@@ -32,6 +32,22 @@ class BookDaoTest {
     fun closeDatabase() = database.close()
 
     @Test
+    fun loadsBookAndChaptersAsOneAggregate() = runTest {
+        dao.insertBookWithChapters(
+            BookEntity("book-load", "雾隐长安", "林渡", "TXT", "books/book-load.txt", "load", 2, 1L, null),
+            listOf(
+                ChapterEntity("book-load", 1, "第二章", "长街"),
+                ChapterEntity("book-load", 0, "第一章", "雨夜"),
+            ),
+        )
+
+        val aggregate = dao.getBookWithChapters("book-load")
+
+        assertEquals("雾隐长安", aggregate?.book?.title)
+        assertEquals(listOf("第一章", "第二章"), aggregate?.chapters?.map { it.title })
+    }
+
+    @Test
     fun deletingBookCascadesChaptersAndProgress() = runTest {
         dao.insertBook(BookEntity("book-1", "雾隐长安", "林渡", "TXT", "books/book-1.txt", "abc", 1, 1L, null))
         dao.insertChapters(listOf(ChapterEntity("book-1", 0, "第一章", "正文")))

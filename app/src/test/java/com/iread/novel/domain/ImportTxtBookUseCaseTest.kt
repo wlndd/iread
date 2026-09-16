@@ -16,6 +16,32 @@ import org.junit.Test
 
 class ImportTxtBookUseCaseTest {
     @Test
+    fun propagatesCancellationFromSelectedSourceOpen() = runTest {
+        val filesDir = Files.createTempDirectory("iread-use-case-cancelled-open").toFile()
+        val source = object : ImportSource {
+            override val displayName = "cancelled.txt"
+            override val sizeBytes: Long? = null
+            override fun open(): java.io.InputStream = throw CancellationException("cancelled")
+        }
+        val useCase = ImportTxtBookUseCase(
+            FakeBookRepository(),
+            PrivateBookFileStore(filesDir),
+            TxtBookParser(),
+            TimeSource { 10L },
+        )
+        var cancellationPropagated = false
+
+        try {
+            useCase(source)
+        } catch (_: CancellationException) {
+            cancellationPropagated = true
+        }
+
+        assertTrue(cancellationPropagated)
+        assertTrue(java.io.File(filesDir, "importing").listFiles().orEmpty().isEmpty())
+    }
+
+    @Test
     fun importsCopyAndParsedChapters() = runTest {
         val repository = FakeBookRepository()
         val files = FakePrivateBookFileStore()

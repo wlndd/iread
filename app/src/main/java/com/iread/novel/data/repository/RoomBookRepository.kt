@@ -45,12 +45,12 @@ class RoomBookRepository(
     }
 
     override suspend fun loadBook(bookId: String): BookContent? {
-        val book = dao.getBook(bookId) ?: return null
+        val aggregate = dao.getBookWithChapters(bookId) ?: return null
         return BookContent(
-            id = book.id,
-            title = book.title,
-            author = book.author,
-            chapters = dao.getChapters(bookId).map { chapter ->
+            id = aggregate.book.id,
+            title = aggregate.book.title,
+            author = aggregate.book.author,
+            chapters = aggregate.chapters.map { chapter ->
                 Chapter(chapter.chapterIndex, chapter.title, chapter.body)
             },
         )
