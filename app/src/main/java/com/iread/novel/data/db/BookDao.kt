@@ -24,6 +24,12 @@ interface BookDao {
         insertChapters(chapters)
     }
 
+    @Query("SELECT EXISTS(SELECT 1 FROM books WHERE fingerprint = :fingerprint)")
+    suspend fun hasFingerprint(fingerprint: String): Boolean
+
+    @Query("SELECT * FROM books WHERE id = :bookId")
+    suspend fun getBook(bookId: String): BookEntity?
+
     @Query("SELECT * FROM chapters WHERE bookId = :bookId ORDER BY chapterIndex")
     suspend fun getChapters(bookId: String): List<ChapterEntity>
 
@@ -32,6 +38,12 @@ interface BookDao {
 
     @Query("SELECT * FROM reading_progress WHERE bookId = :bookId")
     suspend fun getProgress(bookId: String): ReadingProgressEntity?
+
+    @Query("SELECT * FROM reading_progress WHERE bookId = :bookId")
+    fun observeProgress(bookId: String): Flow<ReadingProgressEntity?>
+
+    @Query("UPDATE books SET title = :title, author = :author WHERE id = :bookId")
+    suspend fun updateMetadata(bookId: String, title: String, author: String)
 
     @Query("DELETE FROM books WHERE id = :bookId")
     suspend fun deleteBook(bookId: String)
