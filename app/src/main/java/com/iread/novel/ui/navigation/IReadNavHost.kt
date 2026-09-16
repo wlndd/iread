@@ -1,12 +1,11 @@
 package com.iread.novel.ui.navigation
 
 import android.net.Uri
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -14,6 +13,8 @@ import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.iread.novel.AppContainer
 import com.iread.novel.data.files.AndroidImportSource
+import com.iread.novel.ui.reader.ReaderScreen
+import com.iread.novel.ui.reader.ReaderViewModel
 import com.iread.novel.ui.settings.*
 import com.iread.novel.ui.shelf.*
 
@@ -45,14 +46,29 @@ fun IReadNavHost(container: AppContainer) {
                 settings.importSources(uris.map { uri -> { AndroidImportSource(resolver, uri) } })
             }, state = settingsState)
         }
-        composable(Routes.Reader, arguments = listOf(navArgument("bookId") { type = NavType.StringType })) {
-            // Task 7 owns the reader. Keep the approved route ready for that screen.
-            Scaffold { padding ->
-                Column(Modifier.padding(padding).padding(24.dp)) {
-                    TextButton(onClick = { nav.popBackStack() }) { Text("返回书架") }
-                    Text("阅读页即将开放", style = MaterialTheme.typography.titleLarge)
+        composable(Routes.Reader, arguments = listOf(navArgument("bookId") { type = NavType.StringType })) { backStackEntry ->
+            val bookId = backStackEntry.arguments?.getString("bookId").orEmpty()
+            val reader: ReaderViewModel = viewModel(
+                key = "reader-$bookId",
+                factory = ReaderViewModel.Factory(bookId, container.repository),
+            )
+            val readerState by reader.state.collectAsStateWithLifecycle()
+            val lifecycleOwner = LocalLifecycleOwner.current
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_STOP) {
+                        reader.flushProgress()
+                    }
                 }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
             }
+            ReaderScreen(
+                state = readerState,
+                onBack = { nav.popBackStack() },
+                onOpenChapter = reader::openChapter,
+                onOffsetChanged = reader::updateCharacterOffset,
+            )
         }
     }
 }
