@@ -29,12 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 
 private val PaperYellow = Color(0xFFFFF8E7)
 private val InkBrown = Color(0xFF3C3227)
@@ -91,27 +88,16 @@ private fun ReaderContent(
 ) {
     val chapter = state.chapters[state.chapterIndex]
     val paragraphs = remember(chapter.body) { chapter.body.paragraphsWithOffsets() }
-    val listState = remember(state.chapterIndex) { LazyListState() }
-    val currentOffset by rememberUpdatedState(state.characterOffset)
-    var restoring by remember(state.chapterIndex) { mutableStateOf(true) }
-    var restoredItemIndex by remember(state.chapterIndex) { mutableStateOf(-1) }
+    val paragraphStarts = paragraphs.map { it.startOffset }
+    val initialParagraphIndex = paragraphs.indexOfLast { it.startOffset <= state.characterOffset }.coerceAtLeast(0)
+    val listState = remember(state.chapterIndex) { LazyListState(initialParagraphIndex + 1) }
 
-    LaunchedEffect(state.chapterIndex) {
-        val targetParagraph = paragraphs.indexOfLast { it.startOffset <= currentOffset }.coerceAtLeast(0)
-        restoredItemIndex = targetParagraph + 1
-        listState.scrollToItem(targetParagraph + 1)
-    }
-    LaunchedEffect(state.chapterIndex, listState) {
+    androidx.compose.runtime.LaunchedEffect(state.chapterIndex, listState) {
         snapshotFlow { listState.firstVisibleItemIndex }
+            .map { itemIndex -> readerAnchorForItemIndex(itemIndex, paragraphStarts) }
             .distinctUntilChanged()
-            .collect { itemIndex ->
-                if (restoring) {
-                    if (itemIndex == restoredItemIndex) restoring = false
-                    return@collect
-                }
-                val paragraphIndex = (itemIndex - 1).coerceIn(0, paragraphs.lastIndex)
-                onOffsetChanged(paragraphs[paragraphIndex].startOffset)
-            }
+            .drop(1)
+            .collect { onOffsetChanged(it) }
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -196,6 +182,11 @@ private val paragraphStyle = TextStyle(
 )
 
 private data class ReaderParagraph(val text: String, val startOffset: Int)
+
+internal fun readerAnchorForItemIndex(itemIndex: Int, paragraphStarts: List<Int>): Int {
+    if (paragraphStarts.isEmpty()) return 0
+    return paragraphStarts[(itemIndex - 1).coerceIn(0, paragraphStarts.lastIndex)]
+}
 
 private fun String.paragraphsWithOffsets(): List<ReaderParagraph> {
     if (isEmpty()) return listOf(ReaderParagraph("", 0))

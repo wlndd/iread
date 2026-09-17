@@ -70,6 +70,7 @@ class FakeBookRepository(
     progress: ReadingProgress? = null,
     initialContent: List<BookContent> = emptyList(),
     private val insertFailure: Throwable? = null,
+    private val saveProgressInterceptor: (suspend (ReadingProgress) -> Unit)? = null,
 ) : BookRepository {
     private val fingerprints = existingFingerprints
     private val fingerprintByBookId = mutableMapOf<String, String>()
@@ -113,6 +114,7 @@ class FakeBookRepository(
         progressByBook.map { it[bookId] }
 
     override suspend fun saveProgress(progress: ReadingProgress) {
+        saveProgressInterceptor?.invoke(progress)
         savedProgress += progress
         progressByBook.value = progressByBook.value + (progress.bookId to progress)
     }

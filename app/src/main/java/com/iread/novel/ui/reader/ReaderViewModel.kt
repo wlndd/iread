@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 data class ReaderUiState(
     val loading: Boolean = true,
@@ -36,6 +38,8 @@ class ReaderViewModel(
     private var lastCompletedChapterIndex = -1
     private var offsetSaveJob: Job? = null
     private var progressDirty = false
+    private val saveMutex = Mutex()
+    private var progressGeneration = 0L
 
     init {
         workScope.launch {
@@ -76,8 +80,11 @@ class ReaderViewModel(
         }
         offsetSaveJob?.cancel()
         mutableState.update { it.copy(chapterIndex = index, characterOffset = 0) }
+        progressGeneration += 1
+        val generation = progressGeneration
         progressDirty = false
-        workScope.launch { repository.saveProgress(progress()) }
+        val snapshot = progress()
+        workScope.launch { saveSnapshot(snapshot, generation) }
     }
 
     fun updateCharacterOffset(offset: Int) {
@@ -86,20 +93,24 @@ class ReaderViewModel(
         val clamped = offset.coerceIn(0, current.chapters[current.chapterIndex].body.length)
         if (clamped == current.characterOffset) return
         mutableState.update { it.copy(characterOffset = clamped) }
+        progressGeneration += 1
+        val generation = progressGeneration
         progressDirty = true
         offsetSaveJob?.cancel()
+        val snapshot = progress()
         offsetSaveJob = workScope.launch {
             delay(500)
-            repository.saveProgress(progress())
-            progressDirty = false
+            saveSnapshot(snapshot, generation)
         }
     }
 
     fun flushProgress() {
         if (!progressDirty || mutableState.value.loading) return
         offsetSaveJob?.cancel()
+        val generation = progressGeneration
+        val snapshot = progress()
         progressDirty = false
-        workScope.launch { repository.saveProgress(progress()) }
+        workScope.launch { saveSnapshot(snapshot, generation) }
     }
 
     override fun onCleared() {
@@ -113,6 +124,11 @@ class ReaderViewModel(
         characterOffset = state.value.characterOffset,
         lastCompletedChapterIndex = lastCompletedChapterIndex,
     )
+
+    private suspend fun saveSnapshot(snapshot: ReadingProgress, generation: Long) {
+        saveMutex.withLock { repository.saveProgress(snapshot) }
+        if (generation == progressGeneration) progressDirty = false
+    }
 
     class Factory(
         private val bookId: String,

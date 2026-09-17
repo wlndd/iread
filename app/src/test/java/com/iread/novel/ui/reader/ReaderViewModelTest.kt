@@ -4,6 +4,9 @@ import com.iread.novel.core.model.BookContent
 import com.iread.novel.core.model.Chapter
 import com.iread.novel.core.model.ReadingProgress
 import com.iread.novel.testutil.FakeBookRepository
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -88,6 +91,38 @@ class ReaderViewModelTest {
         advanceTimeBy(400)
         runCurrent()
         assertEquals(1, repository.savedProgress.size)
+    }
+
+    @Test fun savesLatestOffsetAfterPreviousSaveCompletes() = runTest {
+        val firstSaveStarted = CompletableDeferred<Unit>()
+        val releaseFirstSave = CompletableDeferred<Unit>()
+        val repository = FakeBookRepository(
+            initialContent = listOf(book()),
+            saveProgressInterceptor = { progress ->
+                if (progress.characterOffset == 2) {
+                    firstSaveStarted.complete(Unit)
+                    withContext(NonCancellable) {
+                        releaseFirstSave.await()
+                    }
+                }
+            },
+        )
+        val viewModel = ReaderViewModel("book-1", repository, backgroundScope)
+        runCurrent()
+
+        viewModel.updateCharacterOffset(2)
+        advanceTimeBy(500)
+        runCurrent()
+        firstSaveStarted.await()
+
+        viewModel.updateCharacterOffset(3)
+        advanceTimeBy(500)
+        runCurrent()
+
+        releaseFirstSave.complete(Unit)
+        runCurrent()
+
+        assertEquals(listOf(2, 3), repository.savedProgress.map { it.characterOffset })
     }
 
     private fun book() = BookContent(
