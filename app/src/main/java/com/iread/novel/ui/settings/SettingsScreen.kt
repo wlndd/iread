@@ -55,7 +55,7 @@ fun SettingsScreen(onBack: () -> Unit, onImportUri: (List<Uri>) -> Unit, state: 
             }
             items(state.messages) { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             item { GroupLabel("阅读偏好") }
-            item { Text("阅读时可调整字号、行距与背景。", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            item { Text("当前为暖色竖向阅读。字号、行距与背景调整将在下一阶段开放。", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }
 }

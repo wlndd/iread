@@ -31,6 +31,9 @@ class ShelfSettingsFlowTest {
         compose.onNodeWithText("导入文件").assertIsDisplayed()
         compose.onNodeWithText("扫描文件夹").assertIsDisplayed().assertIsNotEnabled()
         compose.onNodeWithText("下一阶段开放").assertIsDisplayed()
+        compose.onNodeWithText("阅读偏好").assertIsDisplayed()
+        compose.onNodeWithText("当前为暖色竖向阅读。字号、行距与背景调整将在下一阶段开放。").assertIsDisplayed()
+        compose.onNodeWithText("阅读时可调整字号、行距与背景。").assertDoesNotExist()
         compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithText("我的书架").assertIsDisplayed()
     }
@@ -67,7 +70,9 @@ class ShelfSettingsFlowTest {
             compose.onNodeWithText(title).assertIsDisplayed()
             val book = runBlocking(Dispatchers.IO) { container.repository.observeBooks().first().single { it.title == title } }
             importedId = book.id
-            val privateCopy = File(compose.activity.filesDir, "books/${book.id}.txt")
+            val privateCopy = File(runBlocking(Dispatchers.IO) {
+                checkNotNull(container.database.bookDao().getBook(book.id)).sourcePath
+            })
             assertTrue(privateCopy.exists())
             compose.onNodeWithText("未知作者 · 1章未读").assertIsDisplayed()
             compose.onNodeWithContentDescription("更多：$title").performClick()

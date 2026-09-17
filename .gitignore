@@ -1,2 +1,11 @@
 .worktrees/
+.gradle/
+.gradle-task*/
+local.properties
+build/
+**/build/
+.idea/
+captures/
+.android-sdk/
+*.jks
 
