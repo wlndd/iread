@@ -17,9 +17,10 @@ Create an untracked `local.properties` in the project root, using your own SDK p
 sdk.dir=C:/Users/YOUR_USER/AppData/Local/Android/Sdk
 ```
 
-Alternatively set `ANDROID_HOME` to that SDK directory. Set a task-local Gradle cache and pin the official emulator in the shell running these commands:
+Gradle can use `local.properties`, but the emulator command below also needs the SDK path in the shell. Set `ANDROID_HOME` to the same SDK directory, then set a task-local Gradle cache and pin the official emulator:
 
 ```powershell
+$env:ANDROID_HOME = 'C:\Users\YOUR_USER\AppData\Local\Android\Sdk'
 $env:GRADLE_USER_HOME = "$PWD\.gradle-task8"
 $env:ANDROID_SERIAL = 'emulator-5560'
 & "$env:ANDROID_HOME\emulator\emulator.exe" -avd iread_api_37 -port 5560
