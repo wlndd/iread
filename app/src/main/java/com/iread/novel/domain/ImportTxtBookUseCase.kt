@@ -3,6 +3,7 @@ package com.iread.novel.domain
 import com.iread.novel.core.model.ImportedBook
 import com.iread.novel.core.parser.BookMetadataParser
 import com.iread.novel.core.parser.BookParser
+import com.iread.novel.core.parser.EpubBookParser
 import com.iread.novel.core.parser.UnsupportedTextEncodingException
 import com.iread.novel.data.files.BookFileStore
 import com.iread.novel.data.files.EmptyImportFileException
@@ -32,6 +33,7 @@ enum class ImportFailure {
     UNREADABLE_FILE,
     UNKNOWN_ENCODING,
     NO_STORAGE,
+    INVALID_EPUB,
 }
 
 class ImportTxtBookUseCase(
@@ -41,7 +43,8 @@ class ImportTxtBookUseCase(
     private val timeSource: TimeSource,
 ) {
     suspend operator fun invoke(source: ImportSource): ImportResult {
-        if (!source.displayName.endsWith(".txt", ignoreCase = true)) {
+        val isEpub = source.displayName.endsWith(".epub", ignoreCase = true)
+        if (!isEpub && !source.displayName.endsWith(".txt", ignoreCase = true)) {
             return ImportResult.Failed(ImportFailure.UNSUPPORTED_FORMAT)
         }
 
@@ -57,7 +60,17 @@ class ImportTxtBookUseCase(
             }
 
             val metadata = BookMetadataParser.parse(source.displayName)
-            val parsed = parser.parse(metadata) { files.open(staged) }
+            val parsed = if (isEpub) {
+                try {
+                    EpubBookParser().parse(metadata) { files.open(staged) }
+                } catch (exception: CancellationException) {
+                    throw exception
+                } catch (exception: PrivateStorageException) {
+                    throw exception
+                } catch (exception: Exception) {
+                    throw InvalidEpubImportException(exception)
+                }
+            } else parser.parse(metadata) { files.open(staged) }
             val bookId = UUID.randomUUID().toString()
             val stored = files.finalize(staged, bookId)
             stagedForCleanup = null
@@ -69,6 +82,7 @@ class ImportTxtBookUseCase(
                 sourcePath = stored.path,
                 fingerprint = staged.fingerprint,
                 importedAt = timeSource.nowMillis(),
+                format = if (isEpub) com.iread.novel.core.model.BookFormat.EPUB else com.iread.novel.core.model.BookFormat.TXT,
             )
             try {
                 repository.insertImportedBook(importedBook)
@@ -92,6 +106,7 @@ class ImportTxtBookUseCase(
 
     private fun Exception.toImportFailure(): ImportFailure = when (this) {
         is EmptyImportFileException -> ImportFailure.EMPTY_FILE
+        is InvalidEpubImportException -> ImportFailure.INVALID_EPUB
         is UnsupportedTextEncodingException -> ImportFailure.UNKNOWN_ENCODING
         is UnreadableImportSourceException -> ImportFailure.UNREADABLE_FILE
         is PrivateStorageException, is ImportPersistenceException -> ImportFailure.NO_STORAGE
@@ -101,3 +116,4 @@ class ImportTxtBookUseCase(
 }
 
 private class ImportPersistenceException(cause: Throwable) : Exception(cause)
+private class InvalidEpubImportException(cause: Throwable) : Exception(cause)

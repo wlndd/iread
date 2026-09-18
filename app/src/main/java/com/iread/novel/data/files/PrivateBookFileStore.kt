@@ -69,6 +69,8 @@ class PrivateBookFileStore(filesDir: File) : BookFileStore, QuarantinedBookFiles
     }
 
     private fun bookFile(directory: File, bookId: String): File {
+        // Legacy private filenames are opaque identifiers, even for EPUB bytes.
+        // Keep this layout so existing delete/recovery and installed TXT data work.
         require(safeBookId.matches(bookId)) { "Invalid book id" }
         return confinedChild(directory, "$bookId.txt")
     }

@@ -35,8 +35,8 @@ fun SettingsScreen(onBack: () -> Unit, onImportUri: (List<Uri>) -> Unit, state: 
             item {
                 Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .5f)) {
                     Column {
-                        SettingsRow("导入文件", "从设备选择 TXT 书籍", Icons.AutoMirrored.Outlined.NoteAdd, state.importingCount == 0) {
-                            picker.launch(arrayOf("text/plain", "application/octet-stream"))
+                        SettingsRow("导入文件", "从设备选择 TXT / EPUB 书籍", Icons.AutoMirrored.Outlined.NoteAdd, state.importingCount == 0) {
+                            picker.launch(arrayOf("text/plain", "application/epub+zip", "application/zip", "application/octet-stream"))
                         }
                         HorizontalDivider(Modifier.padding(horizontal = 20.dp), color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsRow("扫描文件夹", "下一阶段开放", Icons.Outlined.FolderOpen, false) { }

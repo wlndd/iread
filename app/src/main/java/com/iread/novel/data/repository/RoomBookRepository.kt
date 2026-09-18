@@ -31,7 +31,7 @@ class RoomBookRepository(
                 id = book.id,
                 title = book.metadata.title,
                 author = book.metadata.author,
-                format = BookFormat.TXT.name,
+                format = book.format.name,
                 sourcePath = book.sourcePath,
                 fingerprint = book.fingerprint,
                 totalChapters = book.chapters.size,

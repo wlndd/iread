@@ -65,7 +65,7 @@ class ShelfSettingsFlowTest {
             compose.waitUntil(10_000) { compose.onAllNodesWithText("已导入 1 本 · 重复 0 本 · 失败 0 本").fetchSemanticsNodes().isNotEmpty() }
             assertEquals(Intent.ACTION_OPEN_DOCUMENT, pickedIntent?.action)
             assertTrue(pickedIntent!!.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false))
-            assertArrayEquals(arrayOf("text/plain", "application/octet-stream"), pickedIntent!!.getStringArrayExtra(Intent.EXTRA_MIME_TYPES))
+            assertTrue(pickedIntent!!.getStringArrayExtra(Intent.EXTRA_MIME_TYPES)!!.toSet().containsAll(setOf("text/plain", "application/epub+zip")))
             compose.onNodeWithContentDescription("返回书架").performClick()
             compose.onNodeWithText(title).assertIsDisplayed()
             val book = runBlocking(Dispatchers.IO) { container.repository.observeBooks().first().single { it.title == title } }

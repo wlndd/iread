@@ -55,7 +55,8 @@ class SettingsViewModel(
 
     private fun ImportFailure.message() = when (this) {
         ImportFailure.EMPTY_FILE -> "文件为空"
-        ImportFailure.UNSUPPORTED_FORMAT -> "目前仅支持 TXT 文件"
+        ImportFailure.UNSUPPORTED_FORMAT -> "目前支持 TXT 和 EPUB 文件"
+        ImportFailure.INVALID_EPUB -> "无法解析 EPUB：文件损坏、加密或内容超出支持范围"
         ImportFailure.UNREADABLE_FILE -> "无法读取文件，请重新选择"
         ImportFailure.UNKNOWN_ENCODING -> "无法识别文本编码"
         ImportFailure.NO_STORAGE -> "保存失败，请检查可用空间后重试"

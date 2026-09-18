@@ -78,7 +78,7 @@ class ImportTxtBookUseCaseTest {
 
     @Test
     fun rejectsUnsupportedFormatWithoutOpeningSource() = runTest {
-        val source = ByteArrayImportSource("不是文本.epub", "正文".toByteArray())
+        val source = ByteArrayImportSource("不是文本.pdf", "正文".toByteArray())
         val files = FakePrivateBookFileStore()
         val useCase = ImportTxtBookUseCase(
             FakeBookRepository(),

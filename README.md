@@ -1,6 +1,10 @@
-# iRead — Phase 1 TXT reader
+# iRead — TXT and EPUB reader (1.1)
 
 An offline Android Chinese novel reader. Phase 1 supports local `.txt` files in UTF-8 (with or without BOM), GB18030, and GBK-compatible text. It imports a private copy, extracts chapters and filename metadata, shows unread chapters on the shelf, edits metadata, deletes shelf entries/private copies, and restores reading progress. The reader uses vertical scrolling and a warm paper background.
+
+Version 1.1 also imports unencrypted, text-based `.epub` books. Settings → Import accepts TXT and EPUB. EPUB metadata supplies the title/author (filename metadata is the fallback), and the OPF spine determines chapter order. XHTML headings/document titles supply chapter titles. Paragraphs and inline text are converted into the existing vertical reader; duplicate detection, metadata editing, progress, and delete recovery are shared with TXT. No database migration or clearing existing books is required.
+
+EPUB limits: text only; original CSS layout, embedded images/covers, audio, fixed-layout books, and a separate EPUB navigation/TOC interface are not implemented. Books with `META-INF/encryption.xml` (including font-obfuscated books) are rejected. XML must be UTF-8 or UTF-16 and well formed; custom DTD entities are rejected. Archive limits are 4,096 entries, 8 MiB per expanded entry and 32 MiB total. Invalid/unsupported books produce a visible failure and no shelf entry. Archives are never extracted to arbitrary filesystem paths or allowed to load external XML resources. Private filenames retain the legacy `.txt` suffix as opaque storage identifiers even when their bytes are EPUB; the database records the actual format.
 
 Original source files are never deleted by iRead. Deleting a book removes its shelf data and app-private copy only. Import, metadata editing, deletion, and reading work offline; no account or network connection is needed. The first development build may need network access to download dependencies.
 
@@ -73,7 +77,7 @@ The debug APK is for local acceptance, not a release-signed distribution.
 Use local files, for example `雾隐长安 - 林渡.txt` with two Chinese chapter headings and distinct body paragraphs. Create one UTF-8 file and another GB18030 file with different contents so duplicate detection does not skip them. Keep originals in Downloads and record their hashes before/after deletion.
 
 1. Launch with no books and verify the empty shelf.
-2. Open the icon-only settings button and import UTF-8 and GB18030 TXT files.
+2. Open the icon-only settings button and import UTF-8 and GB18030 TXT files, then a two-chapter unencrypted EPUB.
 3. Verify title, author, and unread count on the shelf.
 4. Open a book, move to another chapter, close the app, and verify restoration.
 5. Edit metadata and verify it survives restart.
@@ -84,4 +88,4 @@ For a real process restart, leave the reader, force-stop this app on the pinned 
 
 ## Later phases
 
-Phase 2 adds precise left/right pagination, vertical mode switching, warm/blue/night themes, font size, line spacing, directory sheet, bookmarks, and progress-anchor preservation during reflow. Phase 3 adds EPUB container/OPF/spine/TOC parsing, embedded covers, folder scanning, persistent default preferences, final delete recovery, performance tests, and release APK preparation. Each phase starts only after the previous phase has a passing automated suite and a usable installed build. None of these later-phase features are claimed by this APK.
+Later work includes precise left/right pagination, vertical mode switching, warm/blue/night themes, font size, line spacing, directory sheet, bookmarks, and progress-anchor preservation during reflow, plus EPUB navigation/TOC and embedded covers, folder scanning, persistent preferences, performance tests, and release signing. EPUB container/OPF/spine text import was brought forward into version 1.1 at the user's request; the remaining features are not claimed by this APK.

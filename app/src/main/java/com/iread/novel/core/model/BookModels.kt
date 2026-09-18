@@ -15,6 +15,7 @@ data class ImportedBook(
     val sourcePath: String,
     val fingerprint: String,
     val importedAt: Long,
+    val format: BookFormat = BookFormat.TXT,
 )
 
 data class BookContent(
