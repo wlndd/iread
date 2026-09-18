@@ -19,6 +19,7 @@ data class BookEntity(
     val totalChapters: Int,
     val importedAt: Long,
     val lastReadAt: Long?,
+    val sourceUri: String? = null,
 )
 
 @Entity(
@@ -57,6 +58,7 @@ data class ReadingProgressEntity(
     val characterOffset: Int,
     val lastCompletedChapterIndex: Int,
     val updatedAt: Long,
+    val mode: String? = null,
 )
 
 data class BookRow(
@@ -65,9 +67,30 @@ data class BookRow(
     val author: String,
     val totalChapters: Int,
     val unreadChapters: Int,
+    val sourcePath: String? = null,
 )
 
 data class BookWithChapters(
     val book: BookEntity,
     val chapters: List<ChapterEntity>,
 )
+
+@Entity(
+    tableName = "bookmarks",
+    primaryKeys = ["bookId", "chapterIndex", "characterOffset"],
+    foreignKeys = [ForeignKey(
+        entity = BookEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["bookId"],
+        onDelete = ForeignKey.CASCADE,
+    )],
+)
+data class BookmarkEntity(
+    val bookId: String,
+    val chapterIndex: Int,
+    val characterOffset: Int,
+    val snippet: String,
+    val createdAt: Long,
+)
+
+data class ChapterIndexRow(val chapterIndex: Int, val title: String)

@@ -1,6 +1,9 @@
 package com.iread.novel.data.repository
 
 import com.iread.novel.core.model.BookContent
+import com.iread.novel.core.model.Bookmark
+import com.iread.novel.core.model.ReaderMode
+import com.iread.novel.data.db.BookmarkEntity
 import com.iread.novel.core.model.BookFormat
 import com.iread.novel.core.model.BookSummary
 import com.iread.novel.core.model.Chapter
@@ -37,6 +40,7 @@ class RoomBookRepository(
                 totalChapters = book.chapters.size,
                 importedAt = book.importedAt,
                 lastReadAt = null,
+                sourceUri = book.sourceUri,
             ),
             chapters = book.chapters.map { chapter ->
                 ChapterEntity(book.id, chapter.index, chapter.title, chapter.body)
@@ -56,6 +60,29 @@ class RoomBookRepository(
         )
     }
 
+    override suspend fun loadBookIndex(bookId: String): BookContent? {
+        val book = dao.getBook(bookId) ?: return null
+        return BookContent(book.id, book.title, book.author,
+            dao.getChapterIndex(bookId).map { Chapter(it.chapterIndex, it.title, "") })
+    }
+
+    override suspend fun loadChapter(bookId: String, index: Int): Chapter? =
+        dao.getChapter(bookId, index)?.let { Chapter(it.chapterIndex, it.title, it.body) }
+
+    override fun observeBookmarks(bookId: String): Flow<List<Bookmark>> =
+        dao.observeBookmarks(bookId).map { rows -> rows.map {
+            Bookmark(it.bookId, it.chapterIndex, it.characterOffset, it.snippet, it.createdAt)
+        } }
+
+    override suspend fun upsertBookmark(bookmark: Bookmark) {
+        dao.upsertBookmark(BookmarkEntity(bookmark.bookId, bookmark.chapterIndex,
+            bookmark.characterOffset, bookmark.snippet, bookmark.createdAt))
+    }
+
+    override suspend fun removeBookmark(bookId: String, chapterIndex: Int, characterOffset: Int) {
+        dao.removeBookmark(bookId, chapterIndex, characterOffset)
+    }
+
     override fun observeProgress(bookId: String): Flow<ReadingProgress?> =
         dao.observeProgress(bookId).map { progress ->
             progress?.let {
@@ -64,6 +91,7 @@ class RoomBookRepository(
                     chapterIndex = it.chapterIndex,
                     characterOffset = it.characterOffset,
                     lastCompletedChapterIndex = it.lastCompletedChapterIndex,
+                    mode = it.mode?.let { name -> ReaderMode.entries.firstOrNull { mode -> mode.name == name } },
                 )
             }
         }
@@ -76,6 +104,7 @@ class RoomBookRepository(
                 characterOffset = progress.characterOffset,
                 lastCompletedChapterIndex = progress.lastCompletedChapterIndex,
                 updatedAt = timeSource.nowMillis(),
+                mode = progress.mode?.name,
             ),
         )
     }

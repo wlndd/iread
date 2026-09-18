@@ -1,6 +1,8 @@
 package com.iread.novel.testutil
 
 import com.iread.novel.core.model.BookContent
+import com.iread.novel.core.model.Bookmark
+import com.iread.novel.core.model.Chapter
 import com.iread.novel.core.model.BookSummary
 import com.iread.novel.core.model.ImportedBook
 import com.iread.novel.core.model.ReadingProgress
@@ -81,6 +83,8 @@ class FakeBookRepository(
 
     val saved = mutableListOf<ImportedBook>()
     val savedProgress = mutableListOf<ReadingProgress>()
+    private val bookmarks = MutableStateFlow<List<Bookmark>>(emptyList())
+    val loadedChapterIndices = mutableListOf<Int>()
     val metadataUpdates = mutableListOf<Triple<String, String, String>>()
     val deletedBookIds = mutableListOf<String>()
 
@@ -109,6 +113,19 @@ class FakeBookRepository(
     }
 
     override suspend fun loadBook(bookId: String): BookContent? = content[bookId]
+    override suspend fun loadBookIndex(bookId: String): BookContent? = content[bookId]?.let { it.copy(chapters = it.chapters.map { c -> c.copy(body = "") }) }
+    override suspend fun loadChapter(bookId: String, index: Int): Chapter? {
+        loadedChapterIndices += index
+        return content[bookId]?.chapters?.getOrNull(index)
+    }
+    override fun observeBookmarks(bookId: String): Flow<List<Bookmark>> = bookmarks.map { all -> all.filter { it.bookId == bookId } }
+    override suspend fun upsertBookmark(bookmark: Bookmark) {
+        removeBookmark(bookmark.bookId, bookmark.chapterIndex, bookmark.characterOffset)
+        bookmarks.value = bookmarks.value + bookmark
+    }
+    override suspend fun removeBookmark(bookId: String, chapterIndex: Int, characterOffset: Int) {
+        bookmarks.value = bookmarks.value.filterNot { it.bookId == bookId && it.chapterIndex == chapterIndex && it.characterOffset == characterOffset }
+    }
 
     override fun observeProgress(bookId: String): Flow<ReadingProgress?> =
         progressByBook.map { it[bookId] }
@@ -133,5 +150,6 @@ class FakeBookRepository(
         content.remove(bookId)
         books.value = books.value.filterNot { it.id == bookId }
         progressByBook.value = progressByBook.value - bookId
+        bookmarks.value = bookmarks.value.filterNot { it.bookId == bookId }
     }
 }

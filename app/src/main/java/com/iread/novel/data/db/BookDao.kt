@@ -33,6 +33,21 @@ interface BookDao {
     @Query("SELECT * FROM chapters WHERE bookId = :bookId ORDER BY chapterIndex")
     suspend fun getChapters(bookId: String): List<ChapterEntity>
 
+    @Query("SELECT chapterIndex, title FROM chapters WHERE bookId = :bookId ORDER BY chapterIndex")
+    suspend fun getChapterIndex(bookId: String): List<ChapterIndexRow>
+
+    @Query("SELECT * FROM chapters WHERE bookId = :bookId AND chapterIndex = :index")
+    suspend fun getChapter(bookId: String, index: Int): ChapterEntity?
+
+    @Query("SELECT * FROM bookmarks WHERE bookId = :bookId ORDER BY chapterIndex, characterOffset")
+    fun observeBookmarks(bookId: String): Flow<List<BookmarkEntity>>
+
+    @Upsert
+    suspend fun upsertBookmark(bookmark: BookmarkEntity)
+
+    @Query("DELETE FROM bookmarks WHERE bookId = :bookId AND chapterIndex = :chapterIndex AND characterOffset = :characterOffset")
+    suspend fun removeBookmark(bookId: String, chapterIndex: Int, characterOffset: Int)
+
     @Transaction
     suspend fun getBookWithChapters(bookId: String): BookWithChapters? {
         val book = getBook(bookId) ?: return null
@@ -60,6 +75,7 @@ interface BookDao {
             b.id,
             b.title,
             b.author,
+            b.sourcePath,
             b.totalChapters,
             MAX(
                 b.totalChapters - MAX(

@@ -14,6 +14,7 @@ class AndroidImportSource(
 
     override val displayName: String = metadata.first ?: uri.lastPathSegment ?: "未命名.txt"
     override val sizeBytes: Long? = metadata.second
+    override val sourceUri: String = uri.toString()
 
     override fun open(): InputStream = contentResolver.openInputStream(uri)
         ?: throw FileNotFoundException("The selected document cannot be opened")

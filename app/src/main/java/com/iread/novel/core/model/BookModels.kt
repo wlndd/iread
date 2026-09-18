@@ -16,6 +16,7 @@ data class ImportedBook(
     val fingerprint: String,
     val importedAt: Long,
     val format: BookFormat = BookFormat.TXT,
+    val sourceUri: String? = null,
 )
 
 data class BookContent(
@@ -31,6 +32,7 @@ data class BookSummary(
     val author: String,
     val unreadChapters: Int,
     val totalChapters: Int,
+    val sourcePath: String? = null,
 )
 
 data class ReadingProgress(
@@ -38,4 +40,5 @@ data class ReadingProgress(
     val chapterIndex: Int,
     val characterOffset: Int,
     val lastCompletedChapterIndex: Int,
+    val mode: ReaderMode? = null,
 )

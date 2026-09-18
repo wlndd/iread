@@ -33,9 +33,17 @@ class EpubJourneyTest {
             "one.xhtml" to """<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><body><h1>第一章 山风</h1><p>山风吹过竹林。</p></body></html>""",
             "two.xhtml" to "<html><body><h1>第二章 夜雨</h1><p>窗外细雨，灯下读书。</p></body></html>",
         )
+        entries["book.opf"] = entries.getValue("book.opf").replace("</manifest>", "<item id=\"cover\" href=\"cover.png\" media-type=\"image/png\" properties=\"cover-image\"/></manifest>")
         ZipOutputStream(original.outputStream()).use { zip -> entries.forEach { (name, value) ->
             zip.putNextEntry(ZipEntry(name)); zip.write(value.toByteArray()); zip.closeEntry()
-        } }
+        }
+            zip.putNextEntry(ZipEntry("cover.png"))
+            val cover = android.graphics.Bitmap.createBitmap(20, 30, android.graphics.Bitmap.Config.ARGB_8888)
+            cover.eraseColor(android.graphics.Color.rgb(91, 130, 105))
+            cover.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, zip)
+            cover.recycle()
+            zip.closeEntry()
+        }
         val bytes = original.readBytes()
         var scenario: ActivityScenario<MainActivity>? = null
         var bookId: String? = null
@@ -55,10 +63,11 @@ class EpubJourneyTest {
             assertEquals(ImportResult.Duplicate, runBlocking(Dispatchers.IO) { app.container.importTxtBook(source) })
             scenario = ActivityScenario.launch(MainActivity::class.java)
             awaitText("EPUB山间来信")
+            compose.waitUntil(10_000) { compose.onAllNodesWithContentDescription("EPUB山间来信封面").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("竹客 · 2章未读").assertIsDisplayed()
             compose.onNodeWithText("EPUB山间来信").performClick()
             awaitText("第 1 / 2 章")
-            compose.onNodeWithText("山风吹过竹林。").assertIsDisplayed()
+            compose.onNodeWithText("山风吹过竹林。", substring = true).assertIsDisplayed()
             compose.onNodeWithContentDescription("下一章").performClick()
             awaitText("第 2 / 2 章")
             compose.waitUntil(10_000) { runBlocking(Dispatchers.IO) {
@@ -69,7 +78,7 @@ class EpubJourneyTest {
             awaitText("EPUB山间来信")
             compose.onNodeWithText("EPUB山间来信").performClick()
             awaitText("第 2 / 2 章")
-            compose.onNodeWithText("窗外细雨，灯下读书。").assertIsDisplayed()
+            compose.onNodeWithText("窗外细雨，灯下读书。", substring = true).assertIsDisplayed()
             scenario.close()
             scenario = null
             runBlocking(Dispatchers.IO) { app.container.deleteBook(id) }

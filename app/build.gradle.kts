@@ -13,8 +13,8 @@ android {
         applicationId = "com.iread.novel"
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
 
         testInstrumentationRunner = "com.iread.novel.IReadTestRunner"
         vectorDrawables {
@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.coroutines.android)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+    implementation("androidx.datastore:datastore-preferences:1.1.7")
 
     ksp(libs.room.compiler)
 

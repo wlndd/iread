@@ -8,4 +8,5 @@ fun BookRow.toBookSummary(): BookSummary = BookSummary(
     author = author,
     unreadChapters = unreadChapters,
     totalChapters = totalChapters,
+    sourcePath = sourcePath,
 )

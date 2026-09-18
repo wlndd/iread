@@ -71,6 +71,7 @@ class ImportTxtBookUseCase(
                     throw InvalidEpubImportException(exception)
                 }
             } else parser.parse(metadata) { files.open(staged) }
+            if (parsed.chapters.isEmpty() || parsed.chapters.all { it.body.isBlank() }) throw EmptyImportFileException()
             val bookId = UUID.randomUUID().toString()
             val stored = files.finalize(staged, bookId)
             stagedForCleanup = null
@@ -82,6 +83,7 @@ class ImportTxtBookUseCase(
                 sourcePath = stored.path,
                 fingerprint = staged.fingerprint,
                 importedAt = timeSource.nowMillis(),
+                sourceUri = source.sourceUri,
                 format = if (isEpub) com.iread.novel.core.model.BookFormat.EPUB else com.iread.novel.core.model.BookFormat.TXT,
             )
             try {

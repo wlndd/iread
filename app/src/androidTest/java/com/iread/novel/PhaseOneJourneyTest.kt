@@ -64,7 +64,7 @@ class PhaseOneJourneyTest {
             compose.onNodeWithContentDescription("返回书架").fetchSemanticsNode().boundsInWindow.top >= statusBarBottom)
         compose.onNodeWithContentDescription("下一章").performClick()
         awaitText("第 2 / 2 章")
-        compose.onNodeWithText("灯火映水，舟行向远。").assertIsDisplayed()
+        compose.onNodeWithText("灯火映水，舟行向远。", substring = true).assertIsDisplayed()
         compose.waitUntil(10_000) {
             runBlocking(Dispatchers.IO) {
                 app.container.repository.observeProgress(id).first()?.chapterIndex == 1
@@ -72,7 +72,7 @@ class PhaseOneJourneyTest {
         }
         scenario!!.recreate()
         awaitText("第 2 / 2 章")
-        compose.onNodeWithText("灯火映水，舟行向远。").assertIsDisplayed()
+        compose.onNodeWithText("灯火映水，舟行向远。", substring = true).assertIsDisplayed()
 
         // Recreate retains ViewModels; closing and relaunching proves Room restoration too.
         scenario!!.close()
@@ -81,7 +81,7 @@ class PhaseOneJourneyTest {
         compose.onNodeWithText("林渡 · 1章未读").assertIsDisplayed()
         compose.onNodeWithText("雾隐长安").performClick()
         awaitText("第 2 / 2 章")
-        compose.onNodeWithText("灯火映水，舟行向远。").assertIsDisplayed()
+        compose.onNodeWithText("灯火映水，舟行向远。", substring = true).assertIsDisplayed()
     }
 
     private fun awaitText(text: String) {

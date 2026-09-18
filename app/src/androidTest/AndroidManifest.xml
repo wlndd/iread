@@ -2,5 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- IReadTestRunner replaces the target Application. Keep this test APK's
          standalone AndroidX helper activities independent of target classes. -->
-    <application />
+    <application>
+        <provider android:name="com.iread.novel.ui.ScanFixtureProvider" android:authorities="com.iread.novel.test.scan" android:exported="true" android:grantUriPermissions="true" />
+    </application>
 </manifest>

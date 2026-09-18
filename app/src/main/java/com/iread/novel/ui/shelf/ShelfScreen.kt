@@ -1,6 +1,7 @@
 package com.iread.novel.ui.shelf
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,12 +19,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.iread.novel.core.model.BookSummary
+import com.iread.novel.core.parser.EpubBookParser
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import java.io.File
 
 @Composable
 fun ShelfScreen(
@@ -96,7 +107,7 @@ fun ShelfScreen(
 private fun BookRow(book: BookSummary, onOpen: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(vertical = 17.dp), verticalAlignment = Alignment.CenterVertically) {
-        GeneratedCover(book)
+        BookCover(book)
         Column(Modifier.weight(1f).padding(start = 18.dp, end = 4.dp)) {
             Text(book.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(12.dp))
@@ -111,6 +122,46 @@ private fun BookRow(book: BookSummary, onOpen: () -> Unit, onEdit: () -> Unit, o
                 DropdownMenuItem(text = { Text("删除本书") }, onClick = { menu = false; onDelete() })
             }
         }
+    }
+}
+
+@Composable
+private fun BookCover(book: BookSummary) {
+    val bitmap by produceState<Bitmap?>(null, book.sourcePath) {
+        value = withContext(Dispatchers.IO) { book.sourcePath?.let { CoverImages.load(it) } }
+    }
+    val image = bitmap
+    if (image == null) GeneratedCover(book)
+    else Image(image.asImageBitmap(), "${book.title}封面", modifier = Modifier.size(70.dp, 96.dp).clip(RoundedCornerShape(5.dp)), contentScale = ContentScale.Crop)
+}
+
+private object CoverImages {
+    private val gate = Semaphore(1)
+    private val absent = linkedSetOf<String>()
+    private val cache = object : android.util.LruCache<String, Bitmap>(4 * 1024 * 1024) {
+        override fun sizeOf(key: String, value: Bitmap) = value.allocationByteCount
+    }
+    suspend fun load(path: String): Bitmap? = gate.withPermit {
+        cache.get(path)?.let { return@withPermit it }
+        if (path in absent) return@withPermit null
+        val image = try {
+            val bytes = EpubBookParser().readCover { File(path).inputStream() }
+            bytes?.let {
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                if (bounds.outWidth <= 0 || bounds.outHeight <= 0) null else {
+                    var sample = 1
+                    while (bounds.outWidth / sample > 280 || bounds.outHeight / sample > 384) sample *= 2
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+                }
+            }
+        } catch (cancel: kotlinx.coroutines.CancellationException) { throw cancel }
+        catch (_: Exception) { null }
+        if (image != null) cache.put(path, image) else {
+            if (absent.size >= 128) absent.remove(absent.first())
+            absent += path
+        }
+        image
     }
 }
 
