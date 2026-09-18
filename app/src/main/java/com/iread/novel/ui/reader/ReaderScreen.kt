@@ -270,13 +270,15 @@ private fun ReaderBody(
 }
 
 @Composable
-private fun PageCanvas(chapter: MeasuredChapter, index: Int, ink: Color, modifier: Modifier) {
+internal fun PageCanvas(chapter: MeasuredChapter, index: Int, ink: Color, modifier: Modifier) {
     val page = chapter.pages[index]
     Canvas(modifier.semantics { text = AnnotatedString(chapter.body.substring(page.start, page.end)) }) {
         chapter.paint.color = ink.toArgb()
         drawContext.canvas.nativeCanvas.apply {
             val save = save()
-            clipRect(0f, 0f, size.width, size.height)
+            // The viewport can contain spare space after its last complete line.
+            // Never draw the beginning of the next page into that space.
+            clipRect(0f, 0f, size.width, minOf(size.height, (page.bottom - page.top).toFloat()))
             translate(0f, -page.top.toFloat())
             chapter.layout.draw(this)
             restoreToCount(save)

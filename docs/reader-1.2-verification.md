@@ -1,4 +1,4 @@
-# iRead 1.2.2 verification
+# iRead 1.2.3 verification
 
 Verified on 2026-09-18 with the official iread_api_37 AVD at emulator-5560 (Android API 37).
 
@@ -16,10 +16,10 @@ Verified on 2026-09-18 with the official iread_api_37 AVD at emulator-5560 (Andr
 ## Automated evidence
 
 - JVM: 60 tests, 0 failures, 0 errors.
-- Connected Android: 13 tests, 0 failures, 0 errors.
+- Connected Android: 14 tests, 0 failures, 0 errors.
 - Lint: 0 errors.
 - Build: assembleDebug successful.
-- Focused installed-app reader journey: 1 test passed after installing both final APKs manually.
+- Pixel regression: the pre-fix renderer drew 3,855 next-page pixels below the last complete line; the fixed renderer draws zero. Rendering is clipped to the actual page boundary as well as the viewport.
 
 The suites cover pagination without lost/overlapping text, anchor reflow, cross-chapter transitions, restart restoration, theme/mode preferences, bookmarks, migration, folder traversal and import, TXT/EPUB journeys, nav/NCX labels and cover decoding.
 
