@@ -115,7 +115,7 @@ private fun ReaderBody(
             BoxWithConstraints(
                 Modifier.weight(1f).fillMaxWidth()
                     .padding(horizontal = 24.dp)
-                    .padding(bottom = 40.dp),
+                    .testTag("reader-content"),
             ) {
                 val density = LocalDensity.current
                 val width = with(density) { maxWidth.roundToPx() }
@@ -196,6 +196,7 @@ private fun ReaderBody(
                     }
                 } else CircularProgressIndicator(Modifier.align(Alignment.Center))
             }
+            Spacer(Modifier.height(40.dp))
         }
         if (tools) {
             Surface(

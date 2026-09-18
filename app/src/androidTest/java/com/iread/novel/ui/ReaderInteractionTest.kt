@@ -47,6 +47,9 @@ class ReaderInteractionTest {
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("reader-footer").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithTag("reader-footer").assertIsDisplayed()
             compose.onNodeWithTag("reader-controls").assertDoesNotExist()
+            val contentBottom = compose.onNodeWithTag("reader-content").fetchSemanticsNode().boundsInRoot.bottom
+            val footerTop = compose.onNodeWithTag("reader-footer").fetchSemanticsNode().boundsInRoot.top
+            assertTrue("正文不能进入章数和页数区域", contentBottom <= footerTop)
             screenshot(app, "reader-footer")
             compose.onNodeWithTag("reader-page").performTouchInput { click(center) }
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("reader-controls").fetchSemanticsNodes().isNotEmpty() }
