@@ -68,7 +68,9 @@ class EpubJourneyTest {
             compose.onNodeWithText("EPUB山间来信").performClick()
             awaitText("第 1 / 2 章")
             compose.onNodeWithText("山风吹过竹林。", substring = true).assertIsDisplayed()
+            compose.onNodeWithTag("reader-page").performTouchInput { click(center) }
             compose.onNodeWithContentDescription("下一章").performClick()
+            compose.onNodeWithTag("reader-page").performTouchInput { click(center) }
             awaitText("第 2 / 2 章")
             compose.waitUntil(10_000) { runBlocking(Dispatchers.IO) {
                 app.container.repository.observeProgress(id).first()?.chapterIndex == 1

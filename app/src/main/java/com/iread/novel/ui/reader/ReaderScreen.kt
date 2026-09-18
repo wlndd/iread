@@ -92,7 +92,7 @@ private fun ReaderBody(
     onPreferencesChanged: (ReaderPreferences) -> Unit, onToggleBookmark: () -> Unit,
     onOpenBookmark: (Bookmark) -> Unit, onPositionChanged: (Int, Int) -> Unit,
 ) {
-    var tools by rememberSaveable { mutableStateOf(true) }
+    var tools by rememberSaveable { mutableStateOf(false) }
     var panel by rememberSaveable { mutableStateOf<String?>(null) }
     val chapter = state.chapters[state.chapterIndex]
     var pageLabel by remember(chapter.index) { mutableStateOf("") }
@@ -112,7 +112,11 @@ private fun ReaderBody(
             }
             if (tools) Text(state.notice ?: chapter.title, Modifier.fillMaxWidth().height(32.dp).padding(horizontal = 24.dp), fontFamily = FontFamily.Serif, maxLines = 1, overflow = TextOverflow.Ellipsis)
             else Spacer(Modifier.height(32.dp))
-            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 24.dp)) {
+            BoxWithConstraints(
+                Modifier.weight(1f).fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 40.dp),
+            ) {
                 val density = LocalDensity.current
                 val width = with(density) { maxWidth.roundToPx() }
                 val height = with(density) { maxHeight.roundToPx() }
@@ -192,13 +196,15 @@ private fun ReaderBody(
                     }
                 } else CircularProgressIndicator(Modifier.align(Alignment.Center))
             }
-            Row(Modifier.fillMaxWidth().height(40.dp).padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("第 ${state.chapterIndex + 1} / ${state.chapters.size} 章", style = MaterialTheme.typography.labelSmall)
-                Text(pageLabel, style = MaterialTheme.typography.labelSmall)
-            }
-            // Reserve control height permanently so toggling controls never repaginates text.
-            Box(Modifier.fillMaxWidth().height(96.dp)) {
-                if (tools) Column {
+        }
+        if (tools) {
+            Surface(
+                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(96.dp)
+                    .testTag("reader-controls"),
+                color = paper,
+                contentColor = ink,
+            ) {
+                Column {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                         TextButton(onClick = { panel = "目录" }) { Text("目录") }
                         TextButton(onClick = { panel = "书签" }) { Text("书签") }
@@ -212,6 +218,16 @@ private fun ReaderBody(
                         TextButton(enabled = state.chapterIndex < state.chapters.lastIndex, onClick = { onOpenChapter(state.chapterIndex + 1) }, modifier = Modifier.semantics { contentDescription = "下一章" }) { Text("下一章") }
                     }
                 }
+            }
+        } else {
+            Row(
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(40.dp)
+                    .padding(horizontal = 24.dp).testTag("reader-footer"),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("第 ${state.chapterIndex + 1} / ${state.chapters.size} 章", style = MaterialTheme.typography.labelSmall)
+                Text(pageLabel, style = MaterialTheme.typography.labelSmall)
             }
         }
     }

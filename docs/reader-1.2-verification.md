@@ -1,4 +1,4 @@
-# iRead 1.2 verification
+# iRead 1.2.1 verification
 
 Verified on 2026-09-18 with the official iread_api_37 AVD at emulator-5560 (Android API 37).
 
@@ -11,6 +11,7 @@ Verified on 2026-09-18 with the official iread_api_37 AVD at emulator-5560 (Andr
 - Directory navigation, persistent bookmarks, per-book position/mode, global defaults, and adjacent-chapter body loading.
 - Non-destructive Room schema 1-to-2 migration retaining books, chapters and progress; bookmark cascade on book deletion.
 - Custom adaptive launcher icon using the teal iRead wordmark and amber bookmark.
+- Bottom chapter/page counters occupy the bottom edge only while controls are hidden; the control panel replaces them as an overlay.
 
 ## Automated evidence
 

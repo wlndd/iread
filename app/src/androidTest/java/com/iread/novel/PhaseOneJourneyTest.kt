@@ -53,6 +53,7 @@ class PhaseOneJourneyTest {
         compose.onNodeWithText("林渡 · 2章未读").assertIsDisplayed()
         compose.onNodeWithText("雾隐长安").performClick()
         awaitText("第 1 / 2 章")
+        compose.onNodeWithTag("reader-page").performTouchInput { click(center) }
         var statusBarBottom = 0
         scenario!!.onActivity { activity ->
             statusBarBottom = androidx.core.view.ViewCompat.getRootWindowInsets(activity.window.decorView)
@@ -63,6 +64,7 @@ class PhaseOneJourneyTest {
         assertTrue("The reader back button must stay below the system status bar",
             compose.onNodeWithContentDescription("返回书架").fetchSemanticsNode().boundsInWindow.top >= statusBarBottom)
         compose.onNodeWithContentDescription("下一章").performClick()
+        compose.onNodeWithTag("reader-page").performTouchInput { click(center) }
         awaitText("第 2 / 2 章")
         compose.onNodeWithText("灯火映水，舟行向远。", substring = true).assertIsDisplayed()
         compose.waitUntil(10_000) {
