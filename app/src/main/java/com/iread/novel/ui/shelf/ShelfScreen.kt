@@ -117,7 +117,13 @@ private fun BookRow(book: BookSummary, onOpen: () -> Unit, onEdit: () -> Unit, o
             IconButton(onClick = { menu = true }, modifier = Modifier.size(48.dp)) {
                 Icon(Icons.Outlined.MoreHoriz, contentDescription = "更多：${book.title}", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            DropdownMenu(
+                expanded = menu,
+                onDismissRequest = { menu = false },
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp,
+                shadowElevation = 3.dp,
+            ) {
                 DropdownMenuItem(text = { Text("编辑书籍信息") }, onClick = { menu = false; onEdit() })
                 DropdownMenuItem(text = { Text("删除本书") }, onClick = { menu = false; onDelete() })
             }
