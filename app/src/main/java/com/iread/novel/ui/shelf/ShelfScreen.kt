@@ -81,12 +81,18 @@ fun ShelfScreen(
     editing?.let { book ->
         var title by rememberSaveable(book.id) { mutableStateOf(book.title) }
         var author by rememberSaveable(book.id) { mutableStateOf(book.author) }
+        val fieldColors = OutlinedTextFieldDefaults.colors(
+            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+        )
         AlertDialog(
             onDismissRequest = { editing = null }, title = { Text("编辑书籍信息") },
+            containerColor = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("书名") }, singleLine = true)
-                    OutlinedTextField(value = author, onValueChange = { author = it }, label = { Text("作者") }, singleLine = true)
+                    OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("书名") }, singleLine = true, colors = fieldColors)
+                    OutlinedTextField(value = author, onValueChange = { author = it }, label = { Text("作者") }, singleLine = true, colors = fieldColors)
                 }
             },
             confirmButton = { TextButton(enabled = title.isNotBlank(), onClick = { onEdit(book.id, title, author); editing = null }) { Text("保存") } },

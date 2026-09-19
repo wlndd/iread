@@ -1,4 +1,4 @@
-# iRead — TXT and EPUB reader (1.2.4)
+# iRead — TXT and EPUB reader (1.2.5)
 
 An offline Android Chinese novel reader. Supports local TXT (UTF-8, GB18030 and GBK-compatible text) and unencrypted text EPUB. Import individual files or scan a user-selected folder recursively. Books are copied into private storage; originals are unchanged. The shelf shows cover, title, author and unread chapters, with metadata editing and confirmed deletion. The installed app uses the custom teal iRead wordmark with an amber bookmark as its adaptive launcher icon.
 
