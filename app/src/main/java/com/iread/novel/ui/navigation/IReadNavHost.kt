@@ -14,7 +14,6 @@ import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.iread.novel.AppContainer
 import com.iread.novel.data.files.AndroidImportSource
-import com.iread.novel.data.files.FolderScanner
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
@@ -50,12 +49,7 @@ fun IReadNavHost(container: AppContainer) {
         composable(Routes.Settings) {
             SettingsScreen(onBack = { nav.popBackStack() }, onImportUri = { uris ->
                 settings.importSources(uris.map { uri -> { AndroidImportSource(resolver, uri) } })
-            }, state = settingsState, onImportFolder = { uri ->
-                settings.scanAndImport {
-                    val found = FolderScanner(resolver).scan(uri)
-                    ScannedSources(found.uris.map { child -> { AndroidImportSource(resolver, child) } }, found.warnings)
-                }
-            }, preferences = preferences, onPreferencesChanged = settings::updatePreferences)
+            }, state = settingsState, preferences = preferences, onPreferencesChanged = settings::updatePreferences)
         }
         composable(Routes.Reader, arguments = listOf(navArgument("bookId") { type = NavType.StringType })) { backStackEntry ->
             val bookId = backStackEntry.arguments?.getString("bookId").orEmpty()

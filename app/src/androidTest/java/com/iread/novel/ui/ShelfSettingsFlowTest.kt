@@ -28,8 +28,8 @@ class ShelfSettingsFlowTest {
     @Test fun iconOnlySettingsButtonOpensImportOptionsAndBackReturnsToShelf() {
         compose.onNodeWithText("设置").assertDoesNotExist()
         compose.onNodeWithContentDescription("设置").assertIsDisplayed().performClick()
-        compose.onNodeWithText("导入文件").assertIsDisplayed()
-        compose.onNodeWithText("扫描文件夹").assertIsDisplayed().assertIsEnabled()
+        compose.onNodeWithText("导入书籍").assertIsDisplayed().assertIsEnabled()
+        compose.onNodeWithText("扫描文件夹").assertDoesNotExist()
         compose.onNodeWithText("阅读偏好").assertIsDisplayed()
         compose.onNodeWithText("默认主题").assertIsDisplayed()
         compose.onNodeWithText("暖纸黄").assertIsDisplayed()
@@ -61,11 +61,12 @@ class ShelfSettingsFlowTest {
         var importedId: String? = null
         try {
             compose.onNodeWithContentDescription("设置").performClick()
-            compose.onNodeWithText("导入文件").performClick()
+            compose.onNodeWithText("导入书籍").performClick()
             compose.waitUntil(10_000) { compose.onAllNodesWithText("已导入 1 本 · 重复 0 本 · 失败 0 本").fetchSemanticsNodes().isNotEmpty() }
             assertEquals(Intent.ACTION_OPEN_DOCUMENT, pickedIntent?.action)
             assertTrue(pickedIntent!!.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false))
-            assertTrue(pickedIntent!!.getStringArrayExtra(Intent.EXTRA_MIME_TYPES)!!.toSet().containsAll(setOf("text/plain", "application/epub+zip")))
+            assertEquals("*/*", pickedIntent!!.type)
+            assertTrue(pickedIntent!!.getStringArrayExtra(Intent.EXTRA_MIME_TYPES)!!.contains("*/*"))
             compose.onNodeWithContentDescription("返回书架").performClick()
             compose.onNodeWithText(title).assertIsDisplayed()
             val book = runBlocking(Dispatchers.IO) { container.repository.observeBooks().first().single { it.title == title } }

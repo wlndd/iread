@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.automirrored.outlined.NoteAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -28,12 +27,10 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onImportUri: (List<Uri>) -> Unit,
     state: SettingsUiState,
-    onImportFolder: (Uri) -> Unit = {},
     preferences: ReaderPreferences = ReaderPreferences(),
     onPreferencesChanged: (ReaderPreferences) -> Unit = {},
 ) {
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments(), onImportUri)
-    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> uri?.let(onImportFolder) }
     val idle = state.importingCount == 0 && !state.scanning
     Scaffold { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -46,11 +43,9 @@ fun SettingsScreen(
             item { GroupLabel("本地书库") }
             item {
                     Column {
-                        SettingsRow("导入文件", "从设备选择 TXT / EPUB 书籍", Icons.AutoMirrored.Outlined.NoteAdd, idle) {
-                            picker.launch(arrayOf("text/plain", "application/epub+zip", "application/zip", "application/octet-stream"))
+                        SettingsRow("导入书籍", "可多选文件，自动识别 TXT / EPUB", Icons.AutoMirrored.Outlined.NoteAdd, idle) {
+                            picker.launch(arrayOf("*/*"))
                         }
-                        HorizontalDivider(Modifier.padding(horizontal = 20.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                        SettingsRow("扫描文件夹", "导入所选文件夹及子文件夹中的书籍", Icons.Outlined.FolderOpen, idle) { folderPicker.launch(null) }
                     }
             }
             item { Text("书籍将保存在应用内，原始文件保持不变。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
