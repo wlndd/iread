@@ -12,7 +12,10 @@ class AndroidImportSource(
 ) : ImportSource {
     private val metadata = queryMetadata()
 
-    override val displayName: String = metadata.first ?: uri.lastPathSegment ?: "未命名.txt"
+    override val displayName: String = normalizedBookDisplayName(
+        metadata.first ?: uri.lastPathSegment ?: "未命名.txt",
+        runCatching { contentResolver.getType(uri) }.getOrNull(),
+    )
     override val sizeBytes: Long? = metadata.second
     override val sourceUri: String = uri.toString()
 

@@ -22,6 +22,13 @@ class FolderTraversalTest {
         assertEquals("good", result.documents.single().id)
         assertFalse(result.warnings.isEmpty())
     }
+    @Test fun scansDownloadedEpubWhenProviderOmitsFileExtension() = runTest {
+        val result = FolderTraversal {
+            listOf(ScanDocument("download", "刚下载的小说", false, "application/epub+zip"))
+        }.scan("root")
+        assertEquals(listOf("download"), result.documents.map { it.id })
+        assertEquals("刚下载的小说.epub", normalizedBookDisplayName("刚下载的小说", "application/epub+zip"))
+    }
     @Test fun limitsLargeFoldersWithAnExplicitWarning() = runTest {
         val result = FolderTraversal { (0..2500).map { ScanDocument("$it", "$it.txt", false) } }.scan("root")
         assertEquals(2000, result.documents.size)

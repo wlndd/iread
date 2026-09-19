@@ -7,7 +7,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
 data class FolderScanResult(val uris: List<Uri>, val warnings: List<String>)
-data class ScanDocument(val id: String, val name: String, val directory: Boolean)
+data class ScanDocument(val id: String, val name: String, val directory: Boolean, val mimeType: String? = null)
 data class ScannedDocuments(val documents: List<ScanDocument>, val warnings: List<String>)
 
 /** Independent traversal policy keeps scanning within the explicitly granted tree. */
@@ -34,7 +34,7 @@ class FolderTraversal(private val children: suspend (String) -> List<ScanDocumen
                     return ScannedDocuments(files, warnings.distinct())
                 }
                 if (doc.directory) queue.add(doc.id to depth + 1)
-                else if ((doc.name.endsWith(".txt", true) || doc.name.endsWith(".epub", true)) && visited.add(doc.id)) files += doc
+                else if (isSupportedBookDocument(doc.name, doc.mimeType) && visited.add(doc.id)) files += doc
             }
         }
         return ScannedDocuments(files, warnings.distinct())
@@ -54,8 +54,9 @@ class FolderScanner(private val resolver: ContentResolver) {
                 while (cursor.moveToNext()) {
                     currentCoroutineContext().ensureActive()
                     if (result.size >= 10001) break
+                    val mimeType = cursor.getString(2)
                     result += ScanDocument(cursor.getString(0), cursor.getString(1).orEmpty(),
-                        cursor.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR)
+                        mimeType == DocumentsContract.Document.MIME_TYPE_DIR, mimeType)
                 }
             }
             result
@@ -64,3 +65,15 @@ class FolderScanner(private val resolver: ContentResolver) {
     }
 }
 
+internal fun isSupportedBookDocument(name: String, mimeType: String?): Boolean =
+    name.endsWith(".txt", true) || name.endsWith(".epub", true) || bookExtensionForMime(mimeType) != null
+
+internal fun normalizedBookDisplayName(name: String, mimeType: String?): String =
+    if (name.endsWith(".txt", true) || name.endsWith(".epub", true)) name
+    else bookExtensionForMime(mimeType)?.let(name::plus) ?: name
+
+private fun bookExtensionForMime(mimeType: String?): String? = when (mimeType?.substringBefore(';')?.trim()?.lowercase()) {
+    "text/plain" -> ".txt"
+    "application/epub+zip", "application/x-epub+zip" -> ".epub"
+    else -> null
+}
