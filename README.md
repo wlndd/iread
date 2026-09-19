@@ -1,4 +1,6 @@
-# iRead — TXT and EPUB reader (1.2.7)
+# iRead — TXT and EPUB reader (1.2.8)
+
+Version 1.2.8 adds a remembered book folder: select and authorize it once, then tap One-tap Scan to import TXT/EPUB files from that folder and its subfolders. Duplicate books are skipped. Folder access is retained across restarts; unavailable access prompts reselection. Manual multi-file import remains available. Shelf dialogs use the app's neutral green palette, and reader bookmarks, contents and settings inherit the yellow, blue or night reading palette.
 
 An offline Android Chinese novel reader. Supports local TXT (UTF-8, GB18030 and GBK-compatible text) and unencrypted text EPUB. The single Import Books action opens an unrestricted system file picker with multi-selection, so incorrect provider MIME types do not hide EPUB files. iRead validates each selected book and reports unsupported files without stopping the batch. Books are copied into private storage; originals are unchanged. The shelf shows cover, title, author and unread chapters, with metadata editing and confirmed deletion. The installed app uses the custom teal iRead wordmark with an amber bookmark as its adaptive launcher icon.
 

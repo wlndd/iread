@@ -26,7 +26,10 @@ class FolderTraversal(private val children: suspend (String) -> List<ScanDocumen
             if (depth > 32) { warnings += "部分子文件夹层级过深，已跳过"; continue }
             val found = try { children(id) }
             catch (cancel: kotlinx.coroutines.CancellationException) { throw cancel }
-            catch (_: Exception) { warnings += "部分文件夹无法读取，请检查权限"; continue }
+            catch (error: Exception) {
+                if (id == root) throw error
+                warnings += "部分文件夹无法读取，请检查权限"; continue
+            }
             for (doc in found) {
                 currentCoroutineContext().ensureActive()
                 if (++count > 10000 || files.size >= 2000) {

@@ -5,6 +5,9 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class FolderTraversalTest {
+    @Test(expected = SecurityException::class) fun unreadableRootIsAnErrorInsteadOfEmptyLibrary() = runTest {
+        FolderTraversal { throw SecurityException("permission revoked") }.scan("root")
+    }
     @Test fun scansOnlyBooksRecursivelyAndDoesNotLoopOrDuplicate() = runTest {
         val folders = mapOf(
             "root" to listOf(ScanDocument("a", "One.TXT", false), ScanDocument("sub", "sub", true), ScanDocument("pdf", "skip.pdf", false)),

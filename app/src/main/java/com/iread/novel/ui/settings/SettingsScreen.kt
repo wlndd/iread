@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.NoteAdd
+import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,8 +31,14 @@ fun SettingsScreen(
     state: SettingsUiState,
     preferences: ReaderPreferences = ReaderPreferences(),
     onPreferencesChanged: (ReaderPreferences) -> Unit = {},
+    bookFolder: Uri? = null,
+    onFolderSelected: (Uri) -> Unit = {},
+    onScanBooks: () -> Unit = {},
 ) {
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments(), onImportUri)
+    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) onFolderSelected(uri)
+    }
     val idle = state.importingCount == 0 && !state.scanning
     Scaffold { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -41,6 +49,16 @@ fun SettingsScreen(
                 }
             }
             item { GroupLabel("本地书库") }
+            item {
+                SettingsRow("一键扫描", if (bookFolder == null) "首次选择书籍文件夹，以后点一次即可导入新书" else "扫描已选文件夹及子文件夹，自动跳过重复书籍", Icons.Outlined.Refresh, idle) {
+                    if (bookFolder == null) folderPicker.launch(null) else onScanBooks()
+                }
+            }
+            item {
+                SettingsRow("书籍文件夹", bookFolder?.lastPathSegment?.substringAfter(':')?.ifBlank { "已选择文件夹" } ?: "尚未选择", Icons.Outlined.FolderOpen, idle) {
+                    folderPicker.launch(bookFolder)
+                }
+            }
             item {
                     Column {
                         SettingsRow("导入书籍", "可多选文件，自动识别 TXT / EPUB", Icons.AutoMirrored.Outlined.NoteAdd, idle) {

@@ -57,6 +57,10 @@ class SettingsViewModel(
     }
 
     // Factories keep ContentResolver metadata queries on the IO dispatcher too.
+    fun reportFolderError() {
+        mutableState.update { it.copy(messages = listOf("无法保留文件夹读取权限，请点击书籍文件夹重新选择")) }
+    }
+
     fun importSources(sources: List<() -> ImportSource>) {
         if (sources.isEmpty() || state.value.importingCount > 0 || state.value.scanning) return
         startImport(sources)

@@ -65,6 +65,7 @@ class ReaderInteractionTest {
             compose.onNodeWithText("字号与主题").performClick()
             compose.onNodeWithText("字号 ＋").performClick()
             compose.onNodeWithText("雾霭蓝").performClick()
+            dialogScreenshot(app, "dialog-blue")
             compose.onNodeWithText("完成").performClick()
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("reader-BLUE").fetchSemanticsNodes().isNotEmpty() }
             awaitPage()
@@ -72,6 +73,7 @@ class ReaderInteractionTest {
             assertEquals(mark.characterOffset, progress(app, result.bookId)!!.characterOffset)
             compose.onNodeWithText("字号与主题").performClick()
             compose.onNodeWithText("深夜黑").performClick()
+            dialogScreenshot(app, "dialog-night")
             compose.onNodeWithText("完成").performClick()
             awaitPage()
             screenshot(app, "reader-night")
@@ -91,6 +93,7 @@ class ReaderInteractionTest {
             compose.onNodeWithTag("reader-page").performTouchInput { click(center) }
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("reader-controls").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("书签").performClick()
+            dialogScreenshot(app, "dialog-bookmarks-paper")
             compose.onNodeWithText("第一章 山路\n" + mark.snippet).performClick()
             compose.waitUntil(10_000) { progress(app, result.bookId)?.characterOffset == mark.characterOffset }
             compose.onNodeWithText("切换上下滚动").performClick()
@@ -128,6 +131,11 @@ class ReaderInteractionTest {
     }
     private fun screenshot(app: IReadApplication, name: String) {
         val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
+        File(app.getExternalFilesDir(null), "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
+    private fun dialogScreenshot(app: IReadApplication, name: String) {
+        compose.waitForIdle()
+        val bitmap = compose.onNode(isDialog()).captureToImage().asAndroidBitmap()
         File(app.getExternalFilesDir(null), "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 }

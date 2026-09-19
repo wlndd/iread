@@ -65,8 +65,7 @@ fun ReaderScreen(
             oldNav?.let { controller?.isAppearanceLightNavigationBars = it }
         }
     }
-    val colors = if (night) darkColorScheme(surface = paper, background = paper, onSurface = ink, primary = Color(0xFFA5C4B3))
-        else lightColorScheme(surface = paper, background = paper, onSurface = ink, primary = Color(0xFF466857))
+    val colors = com.iread.novel.ui.theme.readerColors(paper, ink, night)
     MaterialTheme(colorScheme = colors) {
         Surface(Modifier.fillMaxSize().testTag("reader-" + state.preferences.theme.name), color = paper, contentColor = ink) {
             when {

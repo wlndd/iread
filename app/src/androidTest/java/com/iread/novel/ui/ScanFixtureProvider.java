@@ -20,7 +20,7 @@ public class ScanFixtureProvider extends ContentProvider {
     @Override public Cursor query(Uri uri, String[] projection, String selection, String[] args, String sort) {
         String id = DocumentsContract.getDocumentId(uri);
         String[] ids = "children".equals(uri.getLastPathSegment())
-            ? ("root".equals(id) ? new String[]{"a", "sub", "skip"} : new String[]{"b"})
+            ? ("root".equals(id) ? new String[]{"a", "sub", "skip"} : new String[]{"b", "c"})
             : new String[]{id};
         String[] columns = projection != null ? projection : new String[]{
             Document.COLUMN_DOCUMENT_ID, Document.COLUMN_DISPLAY_NAME,
@@ -35,7 +35,7 @@ public class ScanFixtureProvider extends ContentProvider {
                     case Document.COLUMN_DOCUMENT_ID: row[i] = item; break;
                     case Document.COLUMN_DISPLAY_NAME: row[i] = name; break;
                     case Document.COLUMN_MIME_TYPE:
-                        row[i] = ("root".equals(item) || "sub".equals(item)) ? Document.MIME_TYPE_DIR : "text/plain";
+                        row[i] = ("root".equals(item) || "sub".equals(item)) ? Document.MIME_TYPE_DIR : "skip".equals(item) ? "application/pdf" : "c".equals(item) ? "application/epub+zip" : "text/plain";
                         break;
                     case Document.COLUMN_FLAGS: row[i] = 0; break;
                     default: row[i] = null;
@@ -64,7 +64,9 @@ public class ScanFixtureProvider extends ContentProvider {
             };
             try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(new FileOutputStream(epub))) {
                 for (String[] entry : entries) {
-                    zip.putNextEntry(new java.util.zip.ZipEntry(entry[0]));
+                    java.util.zip.ZipEntry zipEntry = new java.util.zip.ZipEntry(entry[0]);
+                    zipEntry.setTime(0L);
+                    zip.putNextEntry(zipEntry);
                     zip.write(entry[1].getBytes(StandardCharsets.UTF_8));
                     zip.closeEntry();
                 }
