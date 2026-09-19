@@ -1,4 +1,6 @@
-# iRead — TXT and EPUB reader (1.2.8)
+# iRead — TXT and EPUB reader (1.2.9)
+
+Version 1.2.9 adds a 220 ms fade and subtle horizontal transition when returning from reading to the shelf. Both the reader back button and system back save progress before navigating, and repeated back taps are consumed during exit.
 
 Version 1.2.8 adds a remembered book folder: select and authorize it once, then tap One-tap Scan to import TXT/EPUB files from that folder and its subfolders. Duplicate books are skipped. Folder access is retained across restarts; unavailable access prompts reselection. Manual multi-file import remains available. Shelf dialogs use the app's neutral green palette, and reader bookmarks, contents and settings inherit the yellow, blue or night reading palette.
 

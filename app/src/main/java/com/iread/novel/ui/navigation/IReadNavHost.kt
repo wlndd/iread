@@ -5,6 +5,12 @@ import android.content.Context
 import android.content.Intent
 import com.iread.novel.data.files.FolderScanner
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -53,7 +59,11 @@ fun IReadNavHost(container: AppContainer) {
         }
     }
     NavHost(navController = nav, startDestination = Routes.Shelf) {
-        composable(Routes.Shelf) {
+        composable(Routes.Shelf, popEnterTransition = {
+            if (initialState.destination.route == Routes.Reader) {
+                fadeIn(tween(220)) + slideInHorizontally(tween(220, easing = FastOutSlowInEasing)) { -it / 30 }
+            } else null
+        }) {
             ShelfScreen(
                 onOpenBook = { nav.navigate(Routes.reader(it)) }, onOpenSettings = { nav.navigate(Routes.Settings) { launchSingleTop = true } },
                 state = shelfState, onEdit = shelf::updateMetadata, onDelete = shelf::delete, onDismissMessage = shelf::dismissMessage,
@@ -81,7 +91,13 @@ fun IReadNavHost(container: AppContainer) {
                 onScanBooks = { bookFolder?.let(scanBooks) },
             )
         }
-        composable(Routes.Reader, arguments = listOf(navArgument("bookId") { type = NavType.StringType })) { backStackEntry ->
+        composable(
+            Routes.Reader,
+            arguments = listOf(navArgument("bookId") { type = NavType.StringType }),
+            popExitTransition = {
+                fadeOut(tween(220)) + slideOutHorizontally(tween(220, easing = FastOutSlowInEasing)) { it / 12 }
+            },
+        ) { backStackEntry ->
             val bookId = backStackEntry.arguments?.getString("bookId").orEmpty()
             val reader: ReaderViewModel = viewModel(
                 key = "reader-$bookId",
@@ -95,7 +111,8 @@ fun IReadNavHost(container: AppContainer) {
                     exiting = true
                     exitScope.launch {
                         try { withContext(NonCancellable) { reader.flushProgressAndWait() } }
-                        finally { nav.popBackStack(); exiting = false }
+                        // Keep repeated back taps consumed until the outgoing page is disposed.
+                        finally { if (!nav.popBackStack()) exiting = false }
                     }
                 }
             }
