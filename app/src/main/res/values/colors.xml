@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="iread_launch_background">#F9FAF7</color>
     <color name="iread_icon_background">#FFF8E7</color>
 </resources>

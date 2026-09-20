@@ -62,7 +62,11 @@ class SettingsViewModelTest {
         assertEquals(1, model.state.value.duplicateCount)
         assertEquals(1, model.state.value.failureCount)
         assertEquals(1, repository.books.value.size)
-        assertTrue(model.state.value.messages.any { it.contains("已在书架中") })
+        assertFalse(model.state.value.messages.any { it.contains("已在书架中") })
         assertTrue(model.state.value.messages.any { it.contains("TXT") })
+        assertEquals(1, model.state.value.messages.size)
+        model.clearMessages()
+        assertTrue(model.state.value.messages.isEmpty())
+        assertEquals(1, repository.books.value.size)
     }
 }

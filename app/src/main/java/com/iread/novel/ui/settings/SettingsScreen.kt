@@ -79,9 +79,6 @@ fun SettingsScreen(
                     }
                 }
             }
-            if (state.importedCount + state.duplicateCount + state.failureCount > 0) item {
-                Text("已导入 ${state.importedCount} 本 · 重复 ${state.duplicateCount} 本 · 失败 ${state.failureCount} 本", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-            }
             items(state.messages) { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             item { GroupLabel("阅读偏好") }
             item { Text("默认主题", style = MaterialTheme.typography.titleSmall) }

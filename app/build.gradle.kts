@@ -13,8 +13,8 @@ android {
         applicationId = "com.iread.novel"
         minSdk = 26
         targetSdk = 37
-        versionCode = 13
-        versionName = "1.3.0"
+        versionCode = 14
+        versionName = "1.3.1"
 
         testInstrumentationRunner = "com.iread.novel.IReadTestRunner"
         vectorDrawables {

@@ -1,4 +1,6 @@
-# iRead — TXT and EPUB reader (1.3.0)
+# iRead — TXT and EPUB reader (1.3.1)
+
+Version 1.3.1 aligns the native launch background with the shelf and uses a transparent vector wordmark. Android 12+ fades the ready-to-dismiss native splash out over 150 ms; disabled system animations skip the fade. Older versions use the matching static launch window. No splash timeout, network resource, or new dependency is added. Import success/duplicate summaries are hidden; only failure reasons remain and are cleared on the next settings visit.
 
 Version 1.3.0 opens the folder picker on every scan and shows selectable TXT/EPUB candidates before importing. Only checked files are imported; batch progress shows the current filename and duplicates are skipped. The separate book-folder entry is removed. Reader bottom controls are Previous Chapter, Contents, Next Chapter; redundant bottom actions are removed without adding another menu. The EPUB expanded archive limit is now 64 MiB.
 

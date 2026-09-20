@@ -65,7 +65,7 @@ class ShelfSettingsFlowTest {
         try {
             compose.onNodeWithContentDescription("设置").performClick()
             compose.onNodeWithText("导入书籍").performClick()
-            compose.waitUntil(10_000) { compose.onAllNodesWithText("已导入 1 本 · 重复 0 本 · 失败 0 本").fetchSemanticsNodes().isNotEmpty() }
+            compose.waitUntil(10_000) { runBlocking(Dispatchers.IO) { container.repository.observeBooks().first().any { it.title == title } } && compose.onAllNodesWithText("正在导入", substring = true).fetchSemanticsNodes().isEmpty() }
             assertEquals(Intent.ACTION_OPEN_DOCUMENT, pickedIntent?.action)
             assertTrue(pickedIntent!!.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false))
             assertEquals("*/*", pickedIntent!!.type)

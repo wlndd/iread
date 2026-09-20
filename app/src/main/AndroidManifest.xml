@@ -7,9 +7,10 @@
         android:label="iRead"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar">
+        android:theme="@style/Theme.IRead">
         <activity
             android:name=".MainActivity"
+            android:theme="@style/Theme.IRead.Launch"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

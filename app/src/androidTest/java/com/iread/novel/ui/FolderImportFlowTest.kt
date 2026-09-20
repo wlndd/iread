@@ -41,7 +41,7 @@ class FolderImportFlowTest {
             assertTrue(runBlocking(Dispatchers.IO) { app.container.repository.observeBooks().first().none { it.title.startsWith("目录验收") } })
             compose.onNodeWithText("目录验收甲.txt").performClick()
             compose.onNodeWithText("导入所选（2）").performClick()
-            compose.waitUntil(15_000) { compose.onAllNodesWithText("已导入 2 本 · 重复 0 本 · 失败 0 本").fetchSemanticsNodes().isNotEmpty() }
+            compose.waitUntil(15_000) { runBlocking(Dispatchers.IO) { app.container.repository.observeBooks().first().count { it.title.startsWith("目录验收") } == 2 } && compose.onAllNodesWithText("正在导入", substring = true).fetchSemanticsNodes().isEmpty() }
             selected = DocumentsContract.buildTreeDocumentUri("com.iread.novel.test.scan", "sub")
             compose.onNodeWithText("一键扫描").performClick()
             compose.waitUntil(15_000) { compose.onAllNodesWithText("导入所选（2）").fetchSemanticsNodes().isNotEmpty() }
@@ -51,7 +51,9 @@ class FolderImportFlowTest {
             compose.onNodeWithText("一键扫描").performClick()
             compose.waitUntil(15_000) { compose.onAllNodesWithText("导入所选（2）").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("导入所选（2）").performClick()
-            compose.waitUntil(15_000) { compose.onAllNodesWithText("已导入 0 本 · 重复 2 本 · 失败 0 本").fetchSemanticsNodes().isNotEmpty() }
+            compose.waitUntil(15_000) { compose.onAllNodesWithText("正在导入", substring = true).fetchSemanticsNodes().isEmpty() }
+            compose.onNodeWithText("已导入", substring = true).assertDoesNotExist()
+            compose.onNodeWithText("已在书架中", substring = true).assertDoesNotExist()
             assertEquals(3, pickerCount)
         } finally {
             instrumentation.removeMonitor(monitor)
@@ -85,9 +87,12 @@ class FolderImportFlowTest {
         try {
             compose.onNodeWithContentDescription("设置").performClick()
             compose.onNodeWithText("导入书籍").performClick()
-            compose.waitUntil(15_000) { compose.onAllNodesWithText("已导入 3 本 · 重复 0 本 · 失败 1 本").fetchSemanticsNodes().isNotEmpty() }
+            compose.waitUntil(15_000) { runBlocking(Dispatchers.IO) { app.container.repository.observeBooks().first().count { it.title.startsWith("目录验收") } == 3 } && compose.onAllNodesWithText("正在导入", substring = true).fetchSemanticsNodes().isEmpty() }
             compose.onNodeWithText("ignored.pdf：目前支持 TXT 和 EPUB 文件").assertIsDisplayed()
             assertTrue(launched)
+            compose.onNodeWithContentDescription("返回书架").performClick()
+            compose.onNodeWithContentDescription("设置").performClick()
+            compose.onNodeWithText("ignored.pdf：目前支持 TXT 和 EPUB 文件").assertDoesNotExist()
             compose.onNodeWithContentDescription("返回书架").performClick()
             compose.onNodeWithText("目录验收甲").assertIsDisplayed()
             compose.onNodeWithText("目录验收乙").assertIsDisplayed()

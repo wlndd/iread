@@ -100,8 +100,8 @@ class SettingsViewModel(
     }
 
     // Factories keep ContentResolver metadata queries on the IO dispatcher too.
-    fun reportFolderError() {
-        mutableState.update { it.copy(messages = listOf("无法保留文件夹读取权限，请点击书籍文件夹重新选择")) }
+    fun clearMessages() {
+        mutableState.update { it.copy(messages = emptyList()) }
     }
 
     fun importSources(sources: List<() -> ImportSource>) {
@@ -128,8 +128,8 @@ class SettingsViewModel(
                         mutableState.update { old ->
                             when (result) {
                                 is ImportResult.Imported -> old.copy(importingCount = old.importingCount - 1, importedCount = old.importedCount + 1)
-                                ImportResult.Duplicate -> old.copy(importingCount = old.importingCount - 1, duplicateCount = old.duplicateCount + 1, messages = old.messages + "$name：已在书架中")
-                                is ImportResult.Failed -> old.copy(importingCount = old.importingCount - 1, failureCount = old.failureCount + 1, messages = old.messages + "$name：${result.reason.message()}")
+                                ImportResult.Duplicate -> old.copy(importingCount = old.importingCount - 1, duplicateCount = old.duplicateCount + 1)
+                                is ImportResult.Failed -> old.copy(importingCount = old.importingCount - 1, failureCount = old.failureCount + 1, messages = (old.messages + "$name：${result.reason.message()}").distinct())
                             }
                         }
                     }

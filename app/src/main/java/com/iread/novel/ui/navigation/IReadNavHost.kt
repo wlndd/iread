@@ -65,6 +65,7 @@ fun IReadNavHost(container: AppContainer) {
             )
         }
         composable(Routes.Settings) {
+            LaunchedEffect(Unit) { settings.clearMessages() }
             SettingsScreen(onBack = { nav.popBackStack() }, onImportUri = { uris ->
                 settings.importSources(uris.map { uri -> { AndroidImportSource(resolver, uri) } })
             }, state = settingsState, preferences = preferences, onPreferencesChanged = settings::updatePreferences,
