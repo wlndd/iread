@@ -1,8 +1,6 @@
 package com.iread.novel.ui.navigation
 
 import android.net.Uri
-import android.content.Context
-import android.content.Intent
 import com.iread.novel.data.files.FolderScanner
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.fadeIn
@@ -43,8 +41,6 @@ fun IReadNavHost(container: AppContainer) {
     val nav = rememberNavController()
     val context = LocalContext.current.applicationContext
     val resolver = context.contentResolver
-    val folderPreferences = remember(context) { context.getSharedPreferences("book_import", Context.MODE_PRIVATE) }
-    var bookFolder by remember { mutableStateOf(folderPreferences.getString("folder_uri", null)?.let(Uri::parse)) }
     // Activity ownership keeps an import running when settings is popped.
     val shelf: ShelfViewModel = viewModel(factory = ShelfViewModel.Factory(container.repository, container.deleteBook))
     val settings: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory(container.importTxtBook, container.preferences))
@@ -52,8 +48,7 @@ fun IReadNavHost(container: AppContainer) {
     val settingsState by settings.state.collectAsStateWithLifecycle()
     val preferences by settings.preferences.collectAsStateWithLifecycle()
     val scanBooks: (Uri) -> Unit = { uri ->
-        settings.scanAndImport {
-            check(resolver.persistedUriPermissions.any { it.uri == uri && it.isReadPermission })
+        settings.scanBooks {
             val result = FolderScanner(resolver).scan(uri)
             ScannedSources(result.uris.map { file -> { AndroidImportSource(resolver, file) } }, result.warnings)
         }
@@ -73,22 +68,11 @@ fun IReadNavHost(container: AppContainer) {
             SettingsScreen(onBack = { nav.popBackStack() }, onImportUri = { uris ->
                 settings.importSources(uris.map { uri -> { AndroidImportSource(resolver, uri) } })
             }, state = settingsState, preferences = preferences, onPreferencesChanged = settings::updatePreferences,
-                bookFolder = bookFolder,
-                onFolderSelected = { uri ->
-                    try {
-                        resolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        val previous = bookFolder
-                        folderPreferences.edit().putString("folder_uri", uri.toString()).apply()
-                        bookFolder = uri
-                        if (previous != null && previous != uri) {
-                            runCatching { resolver.releasePersistableUriPermission(previous, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-                        }
-                        scanBooks(uri)
-                    } catch (_: SecurityException) {
-                        settings.reportFolderError()
-                    }
-                },
-                onScanBooks = { bookFolder?.let(scanBooks) },
+                onFolderSelected = scanBooks,
+                onToggleCandidate = settings::selectCandidate,
+                onSelectAll = settings::selectAllCandidates,
+                onDismissCandidates = settings::dismissCandidates,
+                onImportSelected = settings::importSelected,
             )
         }
         composable(

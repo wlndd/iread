@@ -199,24 +199,15 @@ private fun ReaderBody(
         }
         if (tools) {
             Surface(
-                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(96.dp)
+                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(56.dp)
                     .testTag("reader-controls"),
                 color = paper,
                 contentColor = ink,
             ) {
-                Column {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        TextButton(onClick = { panel = "目录" }) { Text("目录") }
-                        TextButton(onClick = { panel = "书签" }) { Text("书签") }
-                        TextButton(onClick = { panel = "阅读设置" }) { Text("字号与主题") }
-                    }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        TextButton(enabled = state.chapterIndex > 0, onClick = { onOpenChapter(state.chapterIndex - 1) }, modifier = Modifier.semantics { contentDescription = "上一章" }) { Text("上一章") }
-                        TextButton(onClick = { onPreferencesChanged(state.preferences.copy(mode = if (state.preferences.mode == ReaderMode.PAGED) ReaderMode.SCROLL else ReaderMode.PAGED)) }) {
-                            Text(if (state.preferences.mode == ReaderMode.PAGED) "切换上下滚动" else "切换左右翻页")
-                        }
-                        TextButton(enabled = state.chapterIndex < state.chapters.lastIndex, onClick = { onOpenChapter(state.chapterIndex + 1) }, modifier = Modifier.semantics { contentDescription = "下一章" }) { Text("下一章") }
-                    }
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(enabled = state.chapterIndex > 0, onClick = { onOpenChapter(state.chapterIndex - 1) }, modifier = Modifier.weight(1f).semantics { contentDescription = "上一章" }) { Text("上一章") }
+                    TextButton(onClick = { panel = "目录" }, modifier = Modifier.weight(1f)) { Text("目录") }
+                    TextButton(enabled = state.chapterIndex < state.chapters.lastIndex, onClick = { onOpenChapter(state.chapterIndex + 1) }, modifier = Modifier.weight(1f).semantics { contentDescription = "下一章" }) { Text("下一章") }
                 }
             }
         } else {

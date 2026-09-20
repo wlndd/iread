@@ -36,7 +36,7 @@ class EpubBookParser : BookParser {
                     val read = zip.read(buffer)
                     if (read < 0) break
                     total += read
-                    if (out.size().toLong() + read > 8 * 1024 * 1024 || total > 32 * 1024 * 1024) invalid()
+                    if (out.size().toLong() + read > 8 * 1024 * 1024 || total > 64 * 1024 * 1024) invalid()
                     out.write(buffer, 0, read)
                 }
                 entries[name] = out.toByteArray()

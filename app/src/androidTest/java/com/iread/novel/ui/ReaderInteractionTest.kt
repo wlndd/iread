@@ -26,7 +26,7 @@ import java.io.File
 class ReaderInteractionTest {
     @get:Rule val compose = createEmptyComposeRule()
 
-    @Test fun pageGesturesReflowThemesBookmarksDirectoryAndScrollSurviveReopen() {
+    @Test fun simpleControlsNavigateChaptersAndPreserveProgressAndBookmarks() {
         val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as IReadApplication
         assertEquals("com.iread.novel.TestIReadApplication", app.javaClass.name)
         runBlocking { app.container.preferences.update(ReaderPreferences()) }
@@ -54,6 +54,14 @@ class ReaderInteractionTest {
             compose.onNodeWithTag("reader-page").performTouchInput { click(center) }
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("reader-controls").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithTag("reader-footer").assertDoesNotExist()
+            compose.onNodeWithText("字号与主题").assertDoesNotExist()
+            compose.onNodeWithText("书签").assertDoesNotExist()
+            val prev = compose.onNodeWithText("上一章").fetchSemanticsNode().boundsInRoot
+            val toc = compose.onNodeWithText("目录").fetchSemanticsNode().boundsInRoot
+            val next = compose.onNodeWithText("下一章").fetchSemanticsNode().boundsInRoot
+            assertTrue(prev.center.x < toc.center.x && toc.center.x < next.center.x)
+            assertEquals(prev.center.y, toc.center.y, 2f)
+            assertEquals(toc.center.y, next.center.y, 2f)
             compose.onNodeWithTag("reader-page").performTouchInput { click(Offset(width * .85f, height * .4f)) }
             compose.waitUntil(10_000) { progress(app, result.bookId)?.characterOffset?.let { it > 0 } == true }
             val secondOffset = progress(app, result.bookId)!!.characterOffset
@@ -62,26 +70,7 @@ class ReaderInteractionTest {
             compose.onNodeWithContentDescription("添加书签").performClick()
             compose.waitUntil(10_000) { marks(app, result.bookId).size == 1 }
             val mark = marks(app, result.bookId).single()
-            compose.onNodeWithText("字号与主题").performClick()
-            compose.onNodeWithText("字号 ＋").performClick()
-            compose.onNodeWithText("雾霭蓝").performClick()
-            dialogScreenshot(app, "dialog-blue")
-            compose.onNodeWithText("完成").performClick()
-            compose.waitUntil(10_000) { compose.onAllNodesWithTag("reader-BLUE").fetchSemanticsNodes().isNotEmpty() }
-            awaitPage()
-            screenshot(app, "reader-blue")
-            assertEquals(mark.characterOffset, progress(app, result.bookId)!!.characterOffset)
-            compose.onNodeWithText("字号与主题").performClick()
-            compose.onNodeWithText("深夜黑").performClick()
-            dialogScreenshot(app, "dialog-night")
-            compose.onNodeWithText("完成").performClick()
-            awaitPage()
-            screenshot(app, "reader-night")
-            compose.onNodeWithText("字号与主题").performClick()
-            compose.onNodeWithText("暖纸黄").performClick()
-            compose.onNodeWithText("完成").performClick()
-            awaitPage()
-            screenshot(app, "reader-paper")
+            compose.onNodeWithContentDescription("阅读更多").assertDoesNotExist()
             compose.onNodeWithText("目录").performClick()
             compose.onNodeWithText("第二章 夜雨").performClick()
             awaitPage()
@@ -92,24 +81,20 @@ class ReaderInteractionTest {
             compose.waitUntil(10_000) { (progress(app, result.bookId)?.characterOffset ?: 0) > mark.characterOffset }
             compose.onNodeWithTag("reader-page").performTouchInput { click(center) }
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("reader-controls").fetchSemanticsNodes().isNotEmpty() }
-            compose.onNodeWithText("书签").performClick()
-            dialogScreenshot(app, "dialog-bookmarks-paper")
-            compose.onNodeWithText("第一章 山路\n" + mark.snippet).performClick()
-            compose.waitUntil(10_000) { progress(app, result.bookId)?.characterOffset == mark.characterOffset }
-            compose.onNodeWithText("切换上下滚动").performClick()
-            compose.waitUntil(10_000) { compose.onAllNodesWithTag("reader-scroll").fetchSemanticsNodes().isNotEmpty() }
-            compose.onNodeWithTag("reader-scroll").performTouchInput { swipeUp() }
+            screenshot(app, "reader-simple-controls")
+            compose.onNodeWithContentDescription("下一章").performClick()
+            compose.waitUntil(10_000) { progress(app, result.bookId)?.chapterIndex == 1 }
+            compose.onNodeWithContentDescription("上一章").performClick()
+            compose.waitUntil(10_000) { progress(app, result.bookId)?.chapterIndex == 0 }
             compose.onNodeWithContentDescription("返回书架").performClick()
             awaitText("我的书架")
             scenario.close()
             scenario = ActivityScenario.launch(MainActivity::class.java)
             awaitText("翻页验收")
             compose.onNodeWithText("翻页验收").performClick()
-            compose.waitUntil(10_000) { compose.onAllNodesWithTag("reader-scroll").fetchSemanticsNodes().isNotEmpty() }
-            assertEquals(ReaderMode.SCROLL, progress(app, result.bookId)!!.mode)
+            awaitPage()
             assertEquals(1, marks(app, result.bookId).size)
-            compose.onNodeWithTag("reader-scroll").performTouchInput { click(center) }
-            compose.waitUntil(10_000) { compose.onAllNodesWithTag("reader-controls").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("reader-page").performTouchInput { click(center) }
             compose.onNodeWithContentDescription("返回书架").performClick()
             awaitText("我的书架")
         } finally {

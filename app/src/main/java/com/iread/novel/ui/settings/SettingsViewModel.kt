@@ -17,8 +17,12 @@ data class SettingsUiState(
     val duplicateCount: Int = 0,
     val failureCount: Int = 0,
     val messages: List<String> = emptyList(),
+    val candidates: List<BookCandidate> = emptyList(),
+    val totalImports: Int = 0,
+    val currentBook: String = "",
 )
 
+data class BookCandidate(val id: String, val name: String, val size: Long?, val selected: Boolean = true)
 data class ScannedSources(val sources: List<() -> ImportSource>, val warnings: List<String> = emptyList())
 
 class SettingsViewModel(
@@ -30,6 +34,7 @@ class SettingsViewModel(
     private val workScope = scope ?: viewModelScope
     private val mutableState = MutableStateFlow(SettingsUiState())
     val state = mutableState.asStateFlow()
+    private var candidateSources: Map<String, ImportSource> = emptyMap()
     val preferences = (preferencesStore?.preferences ?: flowOf(ReaderPreferences()))
         .stateIn(workScope, SharingStarted.Eagerly, ReaderPreferences())
 
@@ -41,19 +46,57 @@ class SettingsViewModel(
         }
     }
 
-    fun scanAndImport(scan: suspend () -> ScannedSources) {
+    fun scanBooks(scan: suspend () -> ScannedSources) {
         if (state.value.scanning || state.value.importingCount > 0) return
         mutableState.value = SettingsUiState(scanning = true)
+        candidateSources = emptyMap()
         workScope.launch {
             try {
-                val found = withContext(io) { scan() }
-                mutableState.value = SettingsUiState(messages = found.warnings + if (found.sources.isEmpty()) listOf("未找到可导入的 TXT 或 EPUB 文件") else emptyList())
-                startImport(found.sources, mutableState.value.messages)
+                val (found, sources) = withContext(io) {
+                    val found = scan()
+                    val sources = linkedMapOf<String, ImportSource>()
+                    val warnings = found.warnings.toMutableList()
+                    found.sources.forEachIndexed { index, create ->
+                        try {
+                            val source = create()
+                            sources.putIfAbsent(source.sourceUri ?: "candidate-$index", source)
+                        } catch (cancelled: CancellationException) { throw cancelled }
+                        catch (_: Exception) { warnings += "部分文件信息无法读取，已跳过" }
+                    }
+                    found.copy(warnings = warnings.distinct()) to sources
+                }
+                candidateSources = sources
+                mutableState.value = SettingsUiState(
+                    candidates = sources.map { (id, source) -> BookCandidate(id, source.displayName, source.sizeBytes) },
+                    messages = found.warnings + if (sources.isEmpty()) listOf("未找到可导入的 TXT 或 EPUB 文件") else emptyList(),
+                )
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) {
                 mutableState.value = SettingsUiState(messages = listOf("无法扫描文件夹，请重新选择并授予读取权限"))
             } finally { mutableState.update { it.copy(scanning = false) } }
         }
+    }
+
+    fun selectCandidate(id: String) {
+        mutableState.update { it.copy(candidates = it.candidates.map { book -> if (book.id == id) book.copy(selected = !book.selected) else book }) }
+    }
+
+    fun selectAllCandidates(selected: Boolean) {
+        mutableState.update { it.copy(candidates = it.candidates.map { book -> book.copy(selected = selected) }) }
+    }
+
+    fun dismissCandidates() {
+        candidateSources = emptyMap()
+        mutableState.update { it.copy(candidates = emptyList()) }
+    }
+
+    fun importSelected() {
+        if (state.value.scanning || state.value.importingCount > 0) return
+        val selected = state.value.candidates.filter { it.selected }.mapNotNull { candidateSources[it.id] }
+        if (selected.isEmpty()) return
+        val warnings = state.value.messages
+        dismissCandidates()
+        startImport(selected.map { source -> { source } }, warnings)
     }
 
     // Factories keep ContentResolver metadata queries on the IO dispatcher too.
@@ -68,7 +111,8 @@ class SettingsViewModel(
 
     private fun startImport(sources: List<() -> ImportSource>, warnings: List<String> = emptyList()) {
         if (sources.isEmpty()) return
-        mutableState.value = SettingsUiState(importingCount = sources.size, messages = warnings)
+        candidateSources = emptyMap()
+        mutableState.value = SettingsUiState(importingCount = sources.size, totalImports = sources.size, messages = warnings)
         workScope.launch {
             try {
                 withContext(io) {
@@ -77,6 +121,7 @@ class SettingsViewModel(
                         val result = try {
                             val source = createSource()
                             name = source.displayName
+                            mutableState.update { it.copy(currentBook = name) }
                             importer(source)
                         } catch (cancelled: CancellationException) { throw cancelled }
                         catch (_: Exception) { ImportResult.Failed(ImportFailure.UNREADABLE_FILE) }

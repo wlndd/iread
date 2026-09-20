@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.NoteAdd
-import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -31,9 +30,11 @@ fun SettingsScreen(
     state: SettingsUiState,
     preferences: ReaderPreferences = ReaderPreferences(),
     onPreferencesChanged: (ReaderPreferences) -> Unit = {},
-    bookFolder: Uri? = null,
     onFolderSelected: (Uri) -> Unit = {},
-    onScanBooks: () -> Unit = {},
+    onToggleCandidate: (String) -> Unit = {},
+    onSelectAll: (Boolean) -> Unit = {},
+    onDismissCandidates: () -> Unit = {},
+    onImportSelected: () -> Unit = {},
 ) {
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments(), onImportUri)
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -50,13 +51,8 @@ fun SettingsScreen(
             }
             item { GroupLabel("本地书库") }
             item {
-                SettingsRow("一键扫描", if (bookFolder == null) "首次选择书籍文件夹，以后点一次即可导入新书" else "扫描已选文件夹及子文件夹，自动跳过重复书籍", Icons.Outlined.Refresh, idle) {
-                    if (bookFolder == null) folderPicker.launch(null) else onScanBooks()
-                }
-            }
-            item {
-                SettingsRow("书籍文件夹", bookFolder?.lastPathSegment?.substringAfter(':')?.ifBlank { "已选择文件夹" } ?: "尚未选择", Icons.Outlined.FolderOpen, idle) {
-                    folderPicker.launch(bookFolder)
+                SettingsRow("一键扫描", "选择文件夹，扫描后勾选书籍导入", Icons.Outlined.Refresh, idle) {
+                    folderPicker.launch(null)
                 }
             }
             item {
@@ -76,7 +72,11 @@ fun SettingsScreen(
             if (state.importingCount > 0) item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Text("正在导入 · 剩余 ${state.importingCount} 本", style = MaterialTheme.typography.bodyMedium)
+                    Column {
+                        Text("正在导入 ${state.totalImports - state.importingCount + 1} / ${state.totalImports} 本", style = MaterialTheme.typography.bodyMedium)
+                        Text(state.currentBook, style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                        LinearProgressIndicator(progress = { (state.totalImports - state.importingCount).toFloat() / state.totalImports.coerceAtLeast(1) }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                    }
                 }
             }
             if (state.importedCount + state.duplicateCount + state.failureCount > 0) item {
@@ -112,6 +112,40 @@ fun SettingsScreen(
             item { Text("阅读时也可调整。每本书会记住自己的阅读方式与位置。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }
+    if (state.candidates.isNotEmpty()) {
+        val selected = state.candidates.count { it.selected }
+        AlertDialog(
+            onDismissRequest = onDismissCandidates,
+            title = { Text("选择导入书籍") },
+            text = {
+                Column {
+                    Text("找到 ${state.candidates.size} 本 · 已选 $selected 本")
+                    TextButton(onClick = { onSelectAll(selected != state.candidates.size) }) { Text(if (selected == state.candidates.size) "取消全选" else "全选") }
+                    LazyColumn(Modifier.heightIn(max = 380.dp)) {
+                        items(state.candidates, key = { it.id }) { book ->
+                            Row(Modifier.fillMaxWidth().clickable { onToggleCandidate(book.id) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(checked = book.selected, onCheckedChange = { onToggleCandidate(book.id) })
+                                Column(Modifier.weight(1f)) {
+                                    Text(book.name, style = MaterialTheme.typography.bodyMedium)
+                                    Text("${book.name.substringAfterLast('.', "").uppercase()} · ${formatBookSize(book.size)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                    Text("已在书架中的相同书籍会自动跳过。", style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = { TextButton(enabled = selected > 0, onClick = onImportSelected) { Text("导入所选（$selected）") } },
+            dismissButton = { TextButton(onClick = onDismissCandidates) { Text("取消") } },
+        )
+    }
+}
+
+private fun formatBookSize(size: Long?): String = when {
+    size == null || size < 0 -> "大小未知"
+    size < 1024 -> "$size B"
+    size < 1024 * 1024 -> String.format(java.util.Locale.ROOT, "%.1f KB", size / 1024.0)
+    else -> String.format(java.util.Locale.ROOT, "%.1f MB", size / (1024.0 * 1024))
 }
 
 @Composable

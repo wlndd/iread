@@ -31,7 +31,7 @@ class ShelfSettingsFlowTest {
         compose.onNodeWithText("导入书籍").assertIsDisplayed().assertIsEnabled()
         compose.onNodeWithText("扫描文件夹").assertDoesNotExist()
         compose.onNodeWithText("一键扫描").assertIsDisplayed()
-        compose.onNodeWithText("书籍文件夹").assertIsDisplayed()
+        compose.onNodeWithText("书籍文件夹").assertDoesNotExist()
         compose.onNodeWithText("阅读偏好").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("暖纸黄").performScrollTo()
         compose.onNodeWithText("默认主题").assertIsDisplayed()

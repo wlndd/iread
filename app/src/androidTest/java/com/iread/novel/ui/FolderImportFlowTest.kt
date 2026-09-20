@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.ClipData
 import android.provider.DocumentsContract
 import androidx.compose.ui.test.*
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
 import com.iread.novel.MainActivity
@@ -19,41 +20,41 @@ import org.junit.Test
 
 class FolderImportFlowTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
-    @Test fun chosenFolderSurvivesRecreationAndRescanSkipsDuplicates() {
+    @Test fun everyScanChoosesFolderAndWaitsForSelection() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val app = compose.activity.application as IReadApplication
-        val uri = DocumentsContract.buildTreeDocumentUri("com.iread.novel.test.scan", "root")
-        val prefs = app.getSharedPreferences("book_import", android.content.Context.MODE_PRIVATE)
-        prefs.edit().clear().commit()
-        compose.activityRule.scenario.recreate()
-        val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or Intent.FLAG_GRANT_PREFIX_URI_PERMISSION
-        instrumentation.context.grantUriPermission(app.packageName, uri, flags)
+        var selected = DocumentsContract.buildTreeDocumentUri("com.iread.novel.test.scan", "root")
         var pickerCount = 0
         val monitor = object : Instrumentation.ActivityMonitor() {
             override fun onStartActivity(intent: Intent): Instrumentation.ActivityResult? {
                 if (intent.action != Intent.ACTION_OPEN_DOCUMENT_TREE) return null
                 pickerCount++
-                return Instrumentation.ActivityResult(Activity.RESULT_OK, Intent().setData(uri).addFlags(flags))
+                return Instrumentation.ActivityResult(Activity.RESULT_OK, Intent().setData(selected).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
             }
         }
         instrumentation.addMonitor(monitor)
         try {
             compose.onNodeWithContentDescription("设置").performClick()
+            compose.onNodeWithText("书籍文件夹").assertDoesNotExist()
             compose.onNodeWithText("一键扫描").performClick()
-            compose.waitUntil(15_000) { compose.onAllNodesWithText("已导入 3 本 · 重复 0 本 · 失败 0 本").fetchSemanticsNodes().isNotEmpty() }
-            assertEquals(uri.toString(), prefs.getString("folder_uri", null))
-            assertTrue(app.contentResolver.persistedUriPermissions.any { it.uri == uri && it.isReadPermission })
-            compose.activityRule.scenario.recreate()
+            compose.waitUntil(15_000) { compose.onAllNodesWithText("导入所选（3）").fetchSemanticsNodes().isNotEmpty() }
+            assertTrue(runBlocking(Dispatchers.IO) { app.container.repository.observeBooks().first().none { it.title.startsWith("目录验收") } })
+            compose.onNodeWithText("目录验收甲.txt").performClick()
+            compose.onNodeWithText("导入所选（2）").performClick()
+            compose.waitUntil(15_000) { compose.onAllNodesWithText("已导入 2 本 · 重复 0 本 · 失败 0 本").fetchSemanticsNodes().isNotEmpty() }
+            selected = DocumentsContract.buildTreeDocumentUri("com.iread.novel.test.scan", "sub")
             compose.onNodeWithText("一键扫描").performClick()
-            compose.waitUntil(15_000) { compose.onAllNodesWithText("已导入 0 本 · 重复 3 本 · 失败 0 本").fetchSemanticsNodes().isNotEmpty() }
-            assertEquals(1, pickerCount)
-            app.contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            compose.waitUntil(15_000) { compose.onAllNodesWithText("导入所选（2）").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("目录验收甲.txt").assertDoesNotExist()
+            assertEquals(2, pickerCount)
+            compose.onNodeWithText("取消").performClick()
             compose.onNodeWithText("一键扫描").performClick()
-            compose.waitUntil(5_000) { compose.onAllNodesWithText("无法扫描文件夹，请重新选择并授予读取权限").fetchSemanticsNodes().isNotEmpty() }
+            compose.waitUntil(15_000) { compose.onAllNodesWithText("导入所选（2）").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("导入所选（2）").performClick()
+            compose.waitUntil(15_000) { compose.onAllNodesWithText("已导入 0 本 · 重复 2 本 · 失败 0 本").fetchSemanticsNodes().isNotEmpty() }
+            assertEquals(3, pickerCount)
         } finally {
             instrumentation.removeMonitor(monitor)
-            prefs.edit().clear().commit()
-            instrumentation.context.revokeUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             runBlocking(Dispatchers.IO) {
                 app.container.repository.observeBooks().first().filter { it.title.startsWith("目录验收") }.forEach { app.container.deleteBook(it.id) }
             }
