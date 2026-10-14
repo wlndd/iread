@@ -20,46 +20,29 @@ import org.junit.Test
 
 class FolderImportFlowTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
-    @Test fun everyScanChoosesFolderAndWaitsForSelection() {
+    @Test fun scanningExplainsStorageAccessAndCancellingDoesNotOpenFolderPicker() {
+        org.junit.Assume.assumeFalse(com.iread.novel.data.files.hasStorageScanAccess(compose.activity))
         val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val app = compose.activity.application as IReadApplication
-        var selected = DocumentsContract.buildTreeDocumentUri("com.iread.novel.test.scan", "root")
         var pickerCount = 0
         val monitor = object : Instrumentation.ActivityMonitor() {
             override fun onStartActivity(intent: Intent): Instrumentation.ActivityResult? {
                 if (intent.action != Intent.ACTION_OPEN_DOCUMENT_TREE) return null
                 pickerCount++
-                return Instrumentation.ActivityResult(Activity.RESULT_OK, Intent().setData(selected).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
+                return Instrumentation.ActivityResult(Activity.RESULT_CANCELED, null)
             }
         }
         instrumentation.addMonitor(monitor)
         try {
             compose.onNodeWithContentDescription("设置").performClick()
-            compose.onNodeWithText("书籍文件夹").assertDoesNotExist()
             compose.onNodeWithText("一键扫描").performClick()
-            compose.waitUntil(15_000) { compose.onAllNodesWithText("导入所选（3）").fetchSemanticsNodes().isNotEmpty() }
-            assertTrue(runBlocking(Dispatchers.IO) { app.container.repository.observeBooks().first().none { it.title.startsWith("目录验收") } })
-            compose.onNodeWithText("目录验收甲.txt").performClick()
-            compose.onNodeWithText("导入所选（2）").performClick()
-            compose.waitUntil(15_000) { runBlocking(Dispatchers.IO) { app.container.repository.observeBooks().first().count { it.title.startsWith("目录验收") } == 2 } && compose.onAllNodesWithText("正在导入", substring = true).fetchSemanticsNodes().isEmpty() }
-            selected = DocumentsContract.buildTreeDocumentUri("com.iread.novel.test.scan", "sub")
-            compose.onNodeWithText("一键扫描").performClick()
-            compose.waitUntil(15_000) { compose.onAllNodesWithText("导入所选（2）").fetchSemanticsNodes().isNotEmpty() }
-            compose.onNodeWithText("目录验收甲.txt").assertDoesNotExist()
-            assertEquals(2, pickerCount)
+            compose.onNodeWithText("授权扫描小说文件").assertIsDisplayed()
+            compose.onNodeWithText("前往授权").assertIsDisplayed()
             compose.onNodeWithText("取消").performClick()
-            compose.onNodeWithText("一键扫描").performClick()
-            compose.waitUntil(15_000) { compose.onAllNodesWithText("导入所选（2）").fetchSemanticsNodes().isNotEmpty() }
-            compose.onNodeWithText("导入所选（2）").performClick()
-            compose.waitUntil(15_000) { compose.onAllNodesWithText("正在导入", substring = true).fetchSemanticsNodes().isEmpty() }
-            compose.onNodeWithText("已导入", substring = true).assertDoesNotExist()
-            compose.onNodeWithText("已在书架中", substring = true).assertDoesNotExist()
-            assertEquals(3, pickerCount)
+            compose.onNodeWithText("授权扫描小说文件").assertDoesNotExist()
+            assertEquals(0, pickerCount)
+            compose.onNodeWithText("导入书籍").assertIsDisplayed()
         } finally {
             instrumentation.removeMonitor(monitor)
-            runBlocking(Dispatchers.IO) {
-                app.container.repository.observeBooks().first().filter { it.title.startsWith("目录验收") }.forEach { app.container.deleteBook(it.id) }
-            }
         }
     }
     @Test fun multipleSelectedBooksImportEvenWhenAnotherFileIsUnsupported() {

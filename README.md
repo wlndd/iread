@@ -1,4 +1,14 @@
-# iRead — TXT and EPUB reader (1.3.1)
+# iRead — TXT and EPUB reader (1.3.2)
+
+Version 1.3.2 is based on the v1.3.1 release source (commit `5645bbd32c21696d85de10b3e0540cbd59be6b7e`), which is also the tip of `feature/iread-phase-1`. The main branch contains early design documents only.
+
+For a separate installation alongside the original, build with `-PstandaloneScan=true`. This uses application ID `com.iread.novel.scan` and launcher label `iRead 扫描版`, with an independent bookshelf and settings. The ordinary build retains the original application ID; updating an existing installation requires its original signing key.
+
+The updated One-tap Scan asks for storage access, scans all accessible shared-storage volumes, then shows a selectable list with filename, size and source directory. It no longer opens a folder picker. Android 11+ uses the system All files access settings; Android 8–10 requests read storage permission, with legacy shared storage on Android 10. Declining permission leaves manual file import available. A granted permission is reused after checking it on every scan.
+
+Scanning runs on the IO dispatcher, reads filesystem metadata only, reports checked-file/candidate counts and can be cancelled. Only selected candidates are copied and parsed. TXT candidates may be ordinary documents; EPUB validity is checked by the existing importer. No source files are changed or uploaded. Android’s permission includes broad capabilities, but iRead only reads originals. All-files access does not grant access to protected system or other-app private directories. See [Android storage access documentation](https://developer.android.com/training/data-storage/manage-all-files).
+
+Manual scan acceptance: test Android 8/9, Android 10 and Android 11+; deny and grant permission; revoke it between scans; place different TXT/EPUB files in Downloads, nested/hidden folders and an SD card; confirm all accessible candidates are listed with paths; deselect a file and import; cancel during a large scan and restart; verify source hashes are unchanged. Device testing is still required. Distribution through Google Play requires reviewing its [All files access policy](https://support.google.com/googleplay/android-developer/answer/10467955).
 
 Version 1.3.1 aligns the native launch background with the shelf and uses a transparent vector wordmark. Android 12+ fades the ready-to-dismiss native splash out over 150 ms; disabled system animations skip the fade. Older versions use the matching static launch window. No splash timeout, network resource, or new dependency is added. Import success/duplicate summaries are hidden; only failure reasons remain and are cleared on the next settings visit.
 
@@ -96,4 +106,4 @@ For a real process restart, leave the reader, force-stop this app on the pinned 
 
 ## Distribution limits
 
-This is a debug-signed personal-use APK, not an app-store release. Acceptance uses the official API 37 emulator; physical-device compatibility and long-duration performance require further testing. Folder scans are bounded (32 levels, 10,000 entries, 2,000 supported files) and show warnings for skipped/unreadable content. It has no online book sources, account, cloud sync or DRM removal.
+This is a debug-signed personal-use APK, not an app-store release. Acceptance uses the official API 37 emulator; physical-device compatibility and long-duration performance require further testing. Device scans enumerate accessible shared storage and mounted SD cards without the former folder-scan depth/entry/result caps. Android/data, Android/obb, system storage and other apps’ private files are outside the scan scope. Unreadable directories produce an incomplete-results warning. Results contain TXT/EPUB candidates; a TXT file cannot reliably be identified as fiction by its extension. It has no online book sources, account, cloud sync or DRM removal.

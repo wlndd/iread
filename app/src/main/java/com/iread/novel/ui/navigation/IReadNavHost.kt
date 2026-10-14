@@ -1,7 +1,8 @@
 package com.iread.novel.ui.navigation
 
 import android.net.Uri
-import com.iread.novel.data.files.FolderScanner
+import com.iread.novel.data.files.DeviceBookScanner
+import com.iread.novel.data.files.LocalBookImportSource
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -47,10 +48,10 @@ fun IReadNavHost(container: AppContainer) {
     val shelfState by shelf.state.collectAsStateWithLifecycle()
     val settingsState by settings.state.collectAsStateWithLifecycle()
     val preferences by settings.preferences.collectAsStateWithLifecycle()
-    val scanBooks: (Uri) -> Unit = { uri ->
+    val scanBooks: () -> Unit = {
         settings.scanBooks {
-            val result = FolderScanner(resolver).scan(uri)
-            ScannedSources(result.uris.map { file -> { AndroidImportSource(resolver, file) } }, result.warnings)
+            val result = DeviceBookScanner(context).scan(settings::updateScanProgress)
+            ScannedSources(result.files.map { file -> { LocalBookImportSource(file) } }, result.warnings)
         }
     }
     NavHost(navController = nav, startDestination = Routes.Shelf) {
@@ -69,7 +70,8 @@ fun IReadNavHost(container: AppContainer) {
             SettingsScreen(onBack = { nav.popBackStack() }, onImportUri = { uris ->
                 settings.importSources(uris.map { uri -> { AndroidImportSource(resolver, uri) } })
             }, state = settingsState, preferences = preferences, onPreferencesChanged = settings::updatePreferences,
-                onFolderSelected = scanBooks,
+                onScanDevice = scanBooks,
+                onCancelScan = settings::cancelScan,
                 onToggleCandidate = settings::selectCandidate,
                 onSelectAll = settings::selectAllCandidates,
                 onDismissCandidates = settings::dismissCandidates,

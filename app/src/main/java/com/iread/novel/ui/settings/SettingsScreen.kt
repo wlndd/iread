@@ -1,6 +1,10 @@
 package com.iread.novel.ui.settings
 
 import android.net.Uri
+import android.Manifest
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -12,7 +16,9 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.NoteAdd
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -22,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.iread.novel.core.model.ReaderPreferences
 import com.iread.novel.core.model.ReaderMode
 import com.iread.novel.core.model.ReaderTheme
+import com.iread.novel.data.files.hasStorageScanAccess
 
 @Composable
 fun SettingsScreen(
@@ -30,15 +37,25 @@ fun SettingsScreen(
     state: SettingsUiState,
     preferences: ReaderPreferences = ReaderPreferences(),
     onPreferencesChanged: (ReaderPreferences) -> Unit = {},
-    onFolderSelected: (Uri) -> Unit = {},
+    onScanDevice: () -> Unit = {},
+    onCancelScan: () -> Unit = {},
     onToggleCandidate: (String) -> Unit = {},
     onSelectAll: (Boolean) -> Unit = {},
     onDismissCandidates: () -> Unit = {},
     onImportSelected: () -> Unit = {},
 ) {
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments(), onImportUri)
-    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        if (uri != null) onFolderSelected(uri)
+    val context = LocalContext.current
+    val startScan by rememberUpdatedState(onScanDevice)
+    var showScanPermission by rememberSaveable { mutableStateOf(false) }
+    var permissionMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    val storageSettings = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (hasStorageScanAccess(context)) { permissionMessage = null; startScan() }
+        else permissionMessage = "未获得文件访问权限，可重新授权或使用“导入书籍”。"
+    }
+    val storagePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) { permissionMessage = null; startScan() }
+        else permissionMessage = "未获得存储读取权限，可在系统设置中授权或使用“导入书籍”。"
     }
     val idle = state.importingCount == 0 && !state.scanning
     Scaffold { padding ->
@@ -51,8 +68,9 @@ fun SettingsScreen(
             }
             item { GroupLabel("本地书库") }
             item {
-                SettingsRow("一键扫描", "选择文件夹，扫描后勾选书籍导入", Icons.Outlined.Refresh, idle) {
-                    folderPicker.launch(null)
+                SettingsRow("一键扫描", "扫描手机存储中的 TXT / EPUB，勾选后导入", Icons.Outlined.Refresh, idle) {
+                    permissionMessage = null
+                    if (hasStorageScanAccess(context)) onScanDevice() else showScanPermission = true
                 }
             }
             item {
@@ -66,7 +84,11 @@ fun SettingsScreen(
             if (state.scanning) item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Text("正在扫描文件夹…")
+                    Column(Modifier.weight(1f)) {
+                        Text("正在扫描手机存储…")
+                        Text("已检查 ${state.scanProgress.checkedFiles} 个文件，找到 ${state.scanProgress.foundBooks} 个候选", style = MaterialTheme.typography.bodySmall)
+                    }
+                    TextButton(onClick = onCancelScan) { Text("取消扫描") }
                 }
             }
             if (state.importingCount > 0) item {
@@ -80,6 +102,7 @@ fun SettingsScreen(
                 }
             }
             items(state.messages) { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            permissionMessage?.let { message -> item { Text(message, style = MaterialTheme.typography.bodySmall) } }
             item { GroupLabel("阅读偏好") }
             item { Text("默认主题", style = MaterialTheme.typography.titleSmall) }
             item {
@@ -109,6 +132,25 @@ fun SettingsScreen(
             item { Text("阅读时也可调整。每本书会记住自己的阅读方式与位置。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }
+    if (showScanPermission) {
+        AlertDialog(
+            onDismissRequest = { showScanPermission = false },
+            title = { Text("授权扫描小说文件") },
+            text = { Text("授权后，iRead 将遍历手机和已挂载存储卡中可访问的共享文件，找出 TXT / EPUB 候选文件，供你勾选导入。TXT 也可能是普通文档，请自行确认。扫描不会修改或删除原文件，也不会上传文件。系统和其他应用的私有目录无法扫描。") },
+            confirmButton = { TextButton(onClick = {
+                showScanPermission = false
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    val specific = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:${context.packageName}"))
+                    try { storageSettings.launch(specific) }
+                    catch (_: android.content.ActivityNotFoundException) {
+                        try { storageSettings.launch(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)) }
+                        catch (_: android.content.ActivityNotFoundException) { permissionMessage = "系统未提供文件访问授权入口，请使用“导入书籍”。" }
+                    }
+                } else storagePermission.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }) { Text("前往授权") } },
+            dismissButton = { TextButton(onClick = { showScanPermission = false }) { Text("取消") } },
+        )
+    }
     if (state.candidates.isNotEmpty()) {
         val selected = state.candidates.count { it.selected }
         AlertDialog(
@@ -116,7 +158,7 @@ fun SettingsScreen(
             title = { Text("选择导入书籍") },
             text = {
                 Column {
-                    Text("找到 ${state.candidates.size} 本 · 已选 $selected 本")
+                    Text("找到 ${state.candidates.size} 个候选文件 · 已选 $selected 个")
                     TextButton(onClick = { onSelectAll(selected != state.candidates.size) }) { Text(if (selected == state.candidates.size) "取消全选" else "全选") }
                     LazyColumn(Modifier.heightIn(max = 380.dp)) {
                         items(state.candidates, key = { it.id }) { book ->
@@ -125,11 +167,12 @@ fun SettingsScreen(
                                 Column(Modifier.weight(1f)) {
                                     Text(book.name, style = MaterialTheme.typography.bodyMedium)
                                     Text("${book.name.substringAfterLast('.', "").uppercase()} · ${formatBookSize(book.size)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    book.location?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2) }
                                 }
                             }
                         }
                     }
-                    Text("已在书架中的相同书籍会自动跳过。", style = MaterialTheme.typography.bodySmall)
+                    Text("TXT 可能是普通文档，请确认后导入；相同书籍会自动跳过。", style = MaterialTheme.typography.bodySmall)
                 }
             },
             confirmButton = { TextButton(enabled = selected > 0, onClick = onImportSelected) { Text("导入所选（$selected）") } },

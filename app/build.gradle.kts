@@ -5,16 +5,19 @@ plugins {
     alias(libs.plugins.room)
 }
 
+val standaloneScan = providers.gradleProperty("standaloneScan").map(String::toBoolean).getOrElse(false)
+
 android {
     namespace = "com.iread.novel"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.iread.novel"
+        applicationId = if (standaloneScan) "com.iread.novel.scan" else "com.iread.novel"
+        manifestPlaceholders["appLabel"] = if (standaloneScan) "iRead 扫描版" else "iRead"
         minSdk = 26
         targetSdk = 37
-        versionCode = 14
-        versionName = "1.3.1"
+        versionCode = 15
+        versionName = "1.3.2"
 
         testInstrumentationRunner = "com.iread.novel.IReadTestRunner"
         vectorDrawables {

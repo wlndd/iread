@@ -5,6 +5,8 @@ import com.iread.novel.data.files.PrivateBookFileStore
 import com.iread.novel.domain.*
 import com.iread.novel.testutil.*
 import kotlinx.coroutines.test.*
+import kotlinx.coroutines.awaitCancellation
+import com.iread.novel.data.files.StorageScanProgress
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -13,6 +15,23 @@ import org.junit.rules.TemporaryFolder
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class SettingsViewModelTest {
     @get:Rule val temporary = TemporaryFolder()
+    @Test fun cancellingAndRestartingScanDoesNotPublishStaleResults() = runTest {
+        val importer = ImportTxtBookUseCase(FakeBookRepository(), PrivateBookFileStore(temporary.root), TxtBookParser(), TimeSource { 1L })
+        val model = SettingsViewModel(importer, backgroundScope, StandardTestDispatcher(testScheduler))
+        model.scanBooks {
+            model.updateScanProgress(StorageScanProgress(128, 2))
+            awaitCancellation()
+        }
+        runCurrent()
+        assertTrue(model.state.value.scanning)
+        assertEquals(128L, model.state.value.scanProgress.checkedFiles)
+        model.cancelScan()
+        model.scanBooks { ScannedSources(listOf({ ByteArrayImportSource("新书.txt", "正文".toByteArray()) })) }
+        runCurrent()
+        assertFalse(model.state.value.scanning)
+        assertEquals("新书.txt", model.state.value.candidates.single().name)
+        assertTrue(model.state.value.messages.isEmpty())
+    }
     @Test fun scanWaitsForSelectionAndImportsOnlyCheckedBooks() = runTest {
         val repository = FakeBookRepository()
         val importer = ImportTxtBookUseCase(repository, PrivateBookFileStore(temporary.root), TxtBookParser(), TimeSource { 1L })
